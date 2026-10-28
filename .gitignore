@@ -1,0 +1,56 @@
+# .NET / Visual Studio
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Flutter / Dart
+**/.dart_tool/
+**/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub/
+**/.pub-cache/
+**/flutter_*.log
+**/android/local.properties
+**/android/key.properties
+*.jks
+*.keystore
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+# Encrypted configuration archive required for the coursework hand-in.
+!.env-tajne.zip
+*.pfx
+*.p12
+*.key
+
+# Generated packages and release binaries belong in GitHub Releases.
+*.apk
+*.aab
+*.exe
+*.dll
+*.pdb
+*.nupkg
+*.snupkg
+fit-build-*.zip
+
+# Test results, logs and local database files
+**/TestResults/
+**/artifacts/
+**/logs/
+*.log
+*.mdf
+*.ldf
+*.bak
+
+# Local IDE and operating-system files
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini

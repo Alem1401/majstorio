@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+**/.dart_tool/
+**/build/
+**/.flutter-plugins-dependencies
+**/.env
+**/.env.*
+**/.env-*.zip
+**/*.zip
+**/*.apk
+**/*.exe
+**/*.dll
+**/*.pdb
+.git/
+.vs/
+.vscode/
+UI/

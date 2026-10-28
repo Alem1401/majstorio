@@ -1,0 +1,77 @@
+services:
+  api:
+    image: ${API_IMAGE:?Set API_IMAGE in .env}
+    build:
+      context: .
+      dockerfile: Majstorio.WebAPI/Dockerfile
+      args:
+        DOTNET_SDK_IMAGE: ${DOTNET_SDK_IMAGE:?Set DOTNET_SDK_IMAGE in .env}
+        DOTNET_RUNTIME_IMAGE: ${DOTNET_ASPNET_IMAGE:?Set DOTNET_ASPNET_IMAGE in .env}
+    env_file:
+      - .env
+    ports:
+      - "${HOST_BIND_ADDRESS:?Set HOST_BIND_ADDRESS in .env}:${API_HOST_PORT:?Set API_HOST_PORT in .env}:${API_CONTAINER_PORT:?Set API_CONTAINER_PORT in .env}"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  worker:
+    image: ${WORKER_IMAGE:?Set WORKER_IMAGE in .env}
+    build:
+      context: .
+      dockerfile: Majstorio.Worker/Dockerfile
+      args:
+        DOTNET_SDK_IMAGE: ${DOTNET_SDK_IMAGE:?Set DOTNET_SDK_IMAGE in .env}
+        DOTNET_RUNTIME_IMAGE: ${DOTNET_RUNTIME_IMAGE:?Set DOTNET_RUNTIME_IMAGE in .env}
+    env_file:
+      - .env
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE:?Set RABBITMQ_IMAGE in .env}
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RabbitMq__UserName:?Set RabbitMq__UserName in .env}
+      RABBITMQ_DEFAULT_PASS: ${RabbitMq__Password:?Set RabbitMq__Password in .env}
+      RABBITMQ_DEFAULT_VHOST: ${RabbitMq__VirtualHost:?Set RabbitMq__VirtualHost in .env}
+      RABBITMQ_NODE_PORT: ${RabbitMq__Port:?Set RabbitMq__Port in .env}
+    ports:
+      - "${HOST_BIND_ADDRESS:?Set HOST_BIND_ADDRESS in .env}:${RABBITMQ_HOST_PORT:?Set RABBITMQ_HOST_PORT in .env}:${RabbitMq__Port:?Set RabbitMq__Port in .env}"
+      - "${HOST_BIND_ADDRESS:?Set HOST_BIND_ADDRESS in .env}:${RABBITMQ_MANAGEMENT_HOST_PORT:?Set RABBITMQ_MANAGEMENT_HOST_PORT in .env}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  sqlserver:
+    image: ${SQLSERVER_IMAGE:?Set SQLSERVER_IMAGE in .env}
+    environment:
+      ACCEPT_EULA: ${ACCEPT_EULA:?Set ACCEPT_EULA in .env}
+      MSSQL_PID: ${MSSQL_PID:?Set MSSQL_PID in .env}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
+      MSSQL_TCP_PORT: ${DATABASE_PORT:?Set DATABASE_PORT in .env}
+    ports:
+      - "${HOST_BIND_ADDRESS:?Set HOST_BIND_ADDRESS in .env}:${SQLSERVER_HOST_PORT:?Set SQLSERVER_HOST_PORT in .env}:${DATABASE_PORT:?Set DATABASE_PORT in .env}"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'SQLCMDPASSWORD="$$MSSQL_SA_PASSWORD" /opt/mssql-tools18/bin/sqlcmd -S "localhost,$$MSSQL_TCP_PORT" -U sa -C -Q "SELECT 1" -b -o /dev/null'
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  rabbitmq-data:
+  sqlserver-data:

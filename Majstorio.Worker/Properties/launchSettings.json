@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Majstorio.Worker": {
+      "commandName": "Project",
+      "dotnetRunMessages": true
+    }
+  }
+}
