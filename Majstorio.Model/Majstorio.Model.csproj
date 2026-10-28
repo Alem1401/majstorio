@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -8,6 +8,5 @@
 		<Folder Include="Access\" />
 		<Folder Include="Enums\" />
 		<Folder Include="Exceptions\" />
-		<Folder Include="SearchObjects\" />
 	</ItemGroup>
 </Project>
