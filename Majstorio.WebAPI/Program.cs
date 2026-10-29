@@ -1,4 +1,6 @@
 using Majstorio.Services.Mapping;
+using Majstorio.WebAPI.Handlers;
+using Majstorio.WebAPI.Services;
 using Mapster;
 using MapsterMapper;
 
@@ -11,8 +13,13 @@ builder.Services.AddSingleton(mappingConfig);
 builder.Services.AddScoped<IMapper, ServiceMapper>();
 
 builder.Services.AddControllers();
+builder.Services.AddSingleton<ResultToStatusCodeMapper>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 app.MapControllers();
 

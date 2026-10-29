@@ -14,6 +14,7 @@
 		<Folder Include="Validators\" />
 	</ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Majstorio.Common.Services\Majstorio.Common.Services.csproj" />
     <ProjectReference Include="..\Majstorio.Model\Majstorio.Model.csproj" />
   </ItemGroup>
   <ItemGroup>

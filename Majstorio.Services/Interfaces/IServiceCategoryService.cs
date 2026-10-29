@@ -1,11 +1,12 @@
 using Majstorio.Model.Requests.ServiceCategory;
 using Majstorio.Model.Responses.ServiceCategory;
+using Majstorio.Model.Results;
 
 public interface IServiceCategoryService
 {
-    Task<bool> CreateServiceCategoryAsync(ServiceCategoryCreateRequest request);
-    Task<bool> UpdateServiceCategoryAsync(ServiceCategoryUpdateRequest request);
-    Task<bool> DeleteServiceCategoryAsync(ServiceCategoryDeleteRequest request);
-    Task<List<ServiceCategoryResponse>> GetAllServiceCategoriesAsync();
-    Task<ServiceCategoryResponse?> GetServiceCategoryByIdAsync(int id);
+    Task<Result> CreateServiceCategoryAsync(ServiceCategoryCreateRequest request);
+    Task<Result> UpdateServiceCategoryAsync(ServiceCategoryUpdateRequest request);
+    Task<Result> DeleteServiceCategoryAsync(ServiceCategoryDeleteRequest request);
+    Task<Result<List<ServiceCategoryResponse>>> GetAllServiceCategoriesAsync();
+    Task<Result<ServiceCategoryResponse>> GetServiceCategoryByIdAsync(int id);
 }
