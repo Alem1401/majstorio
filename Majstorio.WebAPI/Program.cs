@@ -1,4 +1,7 @@
+using FluentValidation;
 using Majstorio.Services.Mapping;
+using Majstorio.Services.Validators.City;
+using Majstorio.WebAPI.Filters;
 using Majstorio.WebAPI.Handlers;
 using Majstorio.WebAPI.Services;
 using Mapster;
@@ -9,10 +12,16 @@ var builder = WebApplication.CreateBuilder(args);
 var mappingConfig = new TypeAdapterConfig();
 new CityMappingProfile().Register(mappingConfig);
 new ServiceCategoryMappingProfile().Register(mappingConfig);
+new NewsPostMappingProfile().Register(mappingConfig);
 builder.Services.AddSingleton(mappingConfig);
 builder.Services.AddScoped<IMapper, ServiceMapper>();
 
-builder.Services.AddControllers();
+builder.Services.AddValidatorsFromAssemblyContaining<CityInsertRequestValidator>();
+builder.Services.AddControllers(options =>
+{
+    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+    options.Filters.Add<RequestValidationFilter>();
+});
 builder.Services.AddSingleton<ResultToStatusCodeMapper>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();

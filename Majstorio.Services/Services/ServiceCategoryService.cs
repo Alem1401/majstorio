@@ -20,9 +20,6 @@ public class ServiceCategoryService : IServiceCategoryService
 
     public async Task<Result> CreateServiceCategoryAsync(ServiceCategoryCreateRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return Result.Failure(ErrorType.Validation, "Service category name is required.");
-
         if (await _ctx.ServiceCategories.AnyAsync(category => category.Name == request.Name))
             return Result.Failure(ErrorType.Conflict, "Service category already exists.");
 
@@ -60,9 +57,6 @@ public class ServiceCategoryService : IServiceCategoryService
 
     public async Task<Result> UpdateServiceCategoryAsync(ServiceCategoryUpdateRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return Result.Failure(ErrorType.Validation, "Service category name is required.");
-
         var category = await _ctx.ServiceCategories.FirstOrDefaultAsync(category => category.Id == request.Id);
         if (category == null)
             return Result.Failure(ErrorType.NotFound, "Service category not found.");

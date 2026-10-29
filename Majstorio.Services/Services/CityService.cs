@@ -19,9 +19,6 @@ namespace Majstorio.Services.Services
 
         public async Task<Result> CreateCityAsync(CityInsertRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return Result.Failure(ErrorType.Validation, "City name is required.");
-
             if (await _ctx.Cities.AnyAsync(city => city.Name == request.Name))
                 return Result.Failure(ErrorType.Conflict, "City already exists.");
 
@@ -58,9 +55,6 @@ namespace Majstorio.Services.Services
 
         public async Task<Result> UpdateCityAsync(CityUpdateRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return Result.Failure(ErrorType.Validation, "City name is required.");
-
             var city = await _ctx.Cities.FirstOrDefaultAsync(city => city.Id == request.Id);
             if (city == null)
                 return Result.Failure(ErrorType.NotFound, "City not found.");

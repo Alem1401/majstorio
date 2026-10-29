@@ -7,4 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Majstorio.Services\Majstorio.Services.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
+  </ItemGroup>
 </Project>
