@@ -20,10 +20,13 @@ public class NewsPostService : INewsPostService
 
     public async Task<Result> CreateNewsPostAsync(NewsPostCreateRequest request)
     {
-        if (!await _ctx.ApplicationUsers.AnyAsync(user => user.Id == request.AuthorId))
-            return Result.Failure(ErrorType.NotFound, "Author not found.");
+        var validation = await ValidateAuthorAsync(request.AuthorId);
+        if (!validation.IsSuccess)
+            return validation;
 
-        await _ctx.NewsPosts.AddAsync(_mapper.Map<NewsPost>(request));
+        var newsPost = _mapper.Map<NewsPost>(request);
+        NormalizeNewsPost(newsPost);
+        await _ctx.NewsPosts.AddAsync(newsPost);
         await _ctx.SaveChangesAsync();
         return Result.Success();
     }
@@ -41,7 +44,10 @@ public class NewsPostService : INewsPostService
 
     public async Task<Result<List<NewsPostResponse>>> GetAllNewsPostsAsync()
     {
-        var newsPosts = await _ctx.NewsPosts.ToListAsync();
+        var newsPosts = await _ctx.NewsPosts
+            .OrderByDescending(newsPost => newsPost.PublishedAtUtc)
+            .ThenByDescending(newsPost => newsPost.Id)
+            .ToListAsync();
         return Result<List<NewsPostResponse>>.Success(
             _mapper.Map<List<NewsPostResponse>>(newsPosts));
     }
@@ -61,11 +67,32 @@ public class NewsPostService : INewsPostService
         if (newsPost == null)
             return Result.Failure(ErrorType.NotFound, "News post not found.");
 
-        if (!await _ctx.ApplicationUsers.AnyAsync(user => user.Id == request.AuthorId))
-            return Result.Failure(ErrorType.NotFound, "Author not found.");
+        var validation = await ValidateAuthorAsync(request.AuthorId);
+        if (!validation.IsSuccess)
+            return validation;
 
         _mapper.Map(request, newsPost);
+        NormalizeNewsPost(newsPost);
         await _ctx.SaveChangesAsync();
         return Result.Success();
+    }
+
+    private async Task<Result> ValidateAuthorAsync(int authorId)
+    {
+        var author = await _ctx.ApplicationUsers.FirstOrDefaultAsync(user => user.Id == authorId);
+        if (author == null)
+            return Result.Failure(ErrorType.NotFound, "Author not found.");
+
+        if (!author.IsActive)
+            return Result.Failure(ErrorType.Forbidden, "An inactive author cannot publish or update news posts.");
+
+        return Result.Success();
+    }
+
+    private static void NormalizeNewsPost(NewsPost newsPost)
+    {
+        newsPost.Title = newsPost.Title.Trim();
+        newsPost.Content = newsPost.Content.Trim();
+        newsPost.ImageUrl = newsPost.ImageUrl?.Trim() ?? string.Empty;
     }
 }
