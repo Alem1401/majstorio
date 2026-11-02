@@ -15,6 +15,7 @@ new ServiceCategoryMappingProfile().Register(mappingConfig);
 new NewsPostMappingProfile().Register(mappingConfig);
 new AppointmentMappingProfile().Register(mappingConfig);
 new OfferMappingProfile().Register(mappingConfig);
+new ReviewMappingProfile().Register(mappingConfig);
 builder.Services.AddSingleton(mappingConfig);
 builder.Services.AddScoped<IMapper, ServiceMapper>();
 

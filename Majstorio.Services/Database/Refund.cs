@@ -5,7 +5,7 @@ namespace Majstorio.Services.Database;
 // An optional full return of a payment; the intended amount equals the original captured amount.
 public class Refund : BaseEntity
 {
-    // Links to Payment.Id; a payment has zero or one full refund.
+    // Links to Payment.Id; unique, so a payment has zero or one full refund.
     public int PaymentId { get; set; }
     // Links to ApplicationUser.Id; records who initiated the authorized refund.
     public int RequestedByUserId { get; set; }

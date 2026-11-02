@@ -24,4 +24,12 @@ public class MajstorioDbContext : DbContext
     public DbSet<StatusHistory> StatusHistories => Set<StatusHistory>();
     public DbSet<TradespersonProfile> TradespersonProfiles => Set<TradespersonProfile>();
     public DbSet<TradespersonService> TradespersonServices => Set<TradespersonService>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Every relationship, index, length and precision lives in Database/Configurations.
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(MajstorioDbContext).Assembly);
+    }
 }

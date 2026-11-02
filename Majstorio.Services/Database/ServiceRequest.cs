@@ -23,4 +23,8 @@ public class ServiceRequest : BaseEntity
     public City City { get; set; } = null!;
     public ServiceCategory ServiceCategory { get; set; } = null!;
     public TradespersonProfile? TargetTradespersonProfile { get; set; }
+
+    public ICollection<Offer> Offers { get; set; } = new List<Offer>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    public ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
 }

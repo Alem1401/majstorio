@@ -23,4 +23,7 @@ public class Payment : BaseEntity
     public DateTime? PaidAtUtc { get; set; }
 
     public Appointment Appointment { get; set; } = null!;
+
+    // Only a single full refund is allowed per payment.
+    public Refund? Refund { get; set; }
 }
