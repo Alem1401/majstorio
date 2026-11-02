@@ -9,6 +9,8 @@
 
 # Flutter / Dart
 **/.dart_tool/
+**/.tool_localappdata/
+**/.dartServer/
 **/build/
 **/.flutter-plugins
 **/.flutter-plugins-dependencies

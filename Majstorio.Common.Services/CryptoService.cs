@@ -1,40 +1,37 @@
-﻿using Majstorio.Common.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace eCommerce.Common.Services.CryptoService
+namespace Majstorio.Common.Services;
+
+// Salted PBKDF2 password hashing; the salt and hash are stored as Base64 strings.
+public class CryptoService : ICryptoService
 {
-    public class CryptoService : ICryptoService
+    private const int SaltSize = 16;
+    private const int HashSize = 32;
+    private const int Iterations = 210_000;
+    private static readonly HashAlgorithmName Algorithm = HashAlgorithmName.SHA512;
+
+    public string GenerateSalt() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(SaltSize));
+
+    public string GenerateHash(string password, string salt) =>
+        Convert.ToBase64String(DeriveHash(password, salt));
+
+    public bool VerifyPassword(string password, string hash, string salt)
     {
-        public string GenerateHash(string password, string salt)
+        byte[] expected;
+        try
         {
-            using (var pbkdf2 = new Rfc2898DeriveBytes(password, Encoding.UTF8.GetBytes(salt), 10000, HashAlgorithmName.SHA256))
-            {
-                byte[] hash = pbkdf2.GetBytes(20);
-                return Convert.ToBase64String(hash);
-            }
+            expected = Convert.FromBase64String(hash);
+        }
+        catch (FormatException)
+        {
+            return false;
         }
 
-       
-
-        public string GenerateSlat()
-        {
-            using (var rng = new RNGCryptoServiceProvider())
-            {
-                byte[] saltBytes = new byte[16];
-                rng.GetBytes(saltBytes);
-                return Convert.ToBase64String(saltBytes);
-            }
-        }
-
-        public bool VerifyPassword(string hash, string salt, string password)
-        {
-            var generatedHash = GenerateHash(password, salt);
-            return hash == generatedHash;
-        }
+        // Constant-time comparison, so response timing does not reveal how much of the hash matched.
+        return CryptographicOperations.FixedTimeEquals(DeriveHash(password, salt), expected);
     }
+
+    private static byte[] DeriveHash(string password, string salt) =>
+        Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), Encoding.UTF8.GetBytes(salt), Iterations, Algorithm, HashSize);
 }

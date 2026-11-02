@@ -28,8 +28,8 @@ public class UserService : IUserService
             return Result.Failure(ErrorType.Conflict, "User with that email already exists");
         }
         var toAdd = _mapper.Map<ApplicationUser>(request);
-        var salt = _cryptoService.GenerateSlat();
-        var hash = _cryptoService.GenerateHash(salt, request.Password);
+        var salt = _cryptoService.GenerateSalt();
+        var hash = _cryptoService.GenerateHash(request.Password, salt);
         toAdd.PasswordSalt = salt;
         toAdd.PasswordHash = hash;
         await _ctx.ApplicationUsers.AddAsync(toAdd);
