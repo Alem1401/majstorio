@@ -4,7 +4,11 @@
     "Majstorio.WebAPI": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": false
+      "launchBrowser": true,
+      "launchUrl": "scalar",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     }
   }
 }

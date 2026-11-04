@@ -4,9 +4,13 @@ Majstorio is a Software Development II (RSII) coursework project at the Faculty 
 
 ## Development status
 
-The repository currently contains the initial .NET solution, database entity classes, selected request/response DTOs, a generic read service and Docker infrastructure definitions. The application is under development.
+The application is under development.
 
-The database context is a starting point. Database mappings, migrations, seed data, concrete services, API endpoints, authentication and business workflows still need to be implemented. The worker host exists; RabbitMQ publishing and message processing are planned. The Flutter desktop and mobile projects will be created from scratch under `UI/majstorio_desktop` and `UI/majstorio_mobile`.
+- The database schema is defined through EF Core configurations and created by migrations. The API applies pending migrations and the seed data on startup.
+- The service layer covers cities, service categories, users, news posts, offers, appointments, reviews and authentication.
+- The only exposed API endpoints so far are the city endpoints listed below.
+- The worker host exists; RabbitMQ publishing and message processing are planned.
+- The Flutter desktop app is in `UI/majstorio_desktop`; the mobile app is planned under `UI/majstorio_mobile`.
 
 ## Planned scope
 
@@ -29,7 +33,7 @@ The database context is a starting point. Database mappings, migrations, seed da
 
 | Project | Purpose |
 | --- | --- |
-| `Majstorio.WebAPI` | REST API host; endpoints and dependency registration will be added during development. |
+| `Majstorio.WebAPI` | REST API host: controllers, authentication and dependency registration. |
 | `Majstorio.Model` | Request DTOs, response DTOs and search objects. |
 | `Majstorio.Services` | Database entities, EF Core context and service layer. |
 | `Majstorio.Common.Services` | Project reserved for shared service functionality. |
@@ -46,13 +50,59 @@ dotnet build Majstorio.sln
 
 Open `Majstorio.sln` in Visual Studio, or open the repository folder in Visual Studio Code.
 
-The API host can be started with:
+## Run the API locally
+
+The API reads its settings from a `.env` file in the repository root, found automatically when you start it from Visual Studio, Visual Studio Code or `dotnet run`. The file is ignored by Git. Create it once from the example:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Then edit `.env` for a local run. The two lines that matter are the connection string and the JWT key. This connection string uses SQL Server LocalDB, which is installed with Visual Studio:
+
+```
+ConnectionStrings__DefaultConnection='Server=(localdb)\MSSQLLocalDB;Database=230070;Trusted_Connection=True;TrustServerCertificate=True'
+Jwt__Key=<a random value of at least 32 characters>
+ASPNETCORE_URLS=http://localhost:5100
+```
+
+A random key can be generated with:
+
+```powershell
+[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
+```
+
+Start the API:
 
 ```powershell
 dotnet run --project Majstorio.WebAPI
 ```
 
-There are currently no implemented business endpoints or test user accounts. The API and worker are not yet connected to the service layer, database or RabbitMQ. A plain `dotnet run` does not load `.env` automatically.
+If the connection string is missing, the API stops at startup and says so. Values already set in the environment take priority over `.env`.
+
+The first start creates the `230070` database, applies the migrations and inserts the seed data. The API then listens on `http://localhost:5100`. Open `http://localhost:5100/scalar` to view and test the endpoints. The Visual Studio launch profile opens Scalar automatically. Scalar and the OpenAPI document are available in the Development environment.
+
+### City endpoints
+
+The city endpoints are temporarily open without a token while the desktop login is being built. They must require the administrator role before submission.
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/Cities?page=1&pageSize=10&name=mo&isActive=true` | Paged list; `name` and `isActive` are optional filters; `pageSize` is at most 100 |
+| `GET` | `/Cities/{id}` | One city |
+| `POST` | `/Cities` | Create; body `{ "name": "Travnik" }` |
+| `PUT` | `/Cities/{id}` | Update; body `{ "name": "Travnik", "isActive": false }` |
+| `DELETE` | `/Cities/{id}` | Delete; a city that is still used is rejected with 409 and must be deactivated instead |
+
+### Test accounts
+
+Every seeded account uses the password `test`. The login endpoint is not exposed yet.
+
+| Context | Username | Password |
+| --- | --- | --- |
+| Desktop (administrator) | `desktop` | `test` |
+| Mobile (customer) | `mobile` | `test` |
+| Tradesperson | `tradesperson` | `test` |
 
 ## Docker infrastructure scaffold
 
@@ -68,7 +118,7 @@ Replace the SQL Server and RabbitMQ password placeholders in the local `.env`, t
 docker compose up --build
 ```
 
-Compose reads `.env` and passes it to the API and worker containers. Starting the containers does not yet create the application database/schema, seed users or implement messaging. Those steps will be documented as the corresponding functionality is completed.
+Compose reads `.env` and passes it to the API and worker containers. Set `Jwt__Key` to a random value of at least 32 characters; without it every API request fails. On startup the API creates the database, applies the migrations and inserts the seed data. Messaging is not implemented yet.
 
 ## Configuration and repository contents
 
@@ -81,4 +131,4 @@ Compose reads `.env` and passes it to the API and worker containers. Starting th
 
 The final public repository will contain the complete source code. Android and Windows builds will be attached to an immutable GitHub Release as a single ZIP containing the APK and the complete Windows release folder.
 
-Sensitive configuration must follow the course's encrypted ZIP procedure; an unencrypted `.env` must not be included in the release. The exact release link and the configuration archive password are submitted through DLWMS. Recommendation documentation and test login credentials will be added when those features are implemented.
+Sensitive configuration must follow the course's encrypted ZIP procedure; an unencrypted `.env` must not be included in the release. The exact release link and the configuration archive password are submitted through DLWMS. Recommendation documentation will be added when that feature is implemented.

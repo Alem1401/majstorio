@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace Majstorio.Model.Requests.City;
 
-namespace Majstorio.Model.Requests.City
+// The city id comes from the route (PUT /Cities/{id}), not from the body.
+public class CityUpdateRequest
 {
-    public class CityUpdateRequest
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public bool isActive { get; set; }
-    }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
 }

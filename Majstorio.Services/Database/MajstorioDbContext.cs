@@ -31,5 +31,6 @@ public class MajstorioDbContext : DbContext
 
         // Every relationship, index, length and precision lives in Database/Configurations.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MajstorioDbContext).Assembly);
+        MajstorioSeed.Seed(modelBuilder);
     }
 }

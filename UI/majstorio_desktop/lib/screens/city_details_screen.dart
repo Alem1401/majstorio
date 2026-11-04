@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
+import 'package:majstorio_desktop/models/city.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class CityDetailsScreen extends StatefulWidget {
   const CityDetailsScreen({super.key});
@@ -14,6 +17,16 @@ class _CityDetailsScreenState extends State<CityDetailsScreen> {
 
   var isActive = true;
   final key = GlobalKey<FormState>();
+
+  Future<int> createCity() async {
+    var newCity = City( name:  _cityName.text,isActive: isActive);
+    var response =await http.post(
+      Uri.parse("http://localhost:5100/Cities"),
+      body: jsonEncode(City.toJson(newCity)),
+      headers: {"content-type" : "application/json"}
+    );
+    return response.statusCode;
+  }
 
   @override
   void dispose() {
@@ -110,10 +123,11 @@ class _CityDetailsScreenState extends State<CityDetailsScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: ElevatedButton.icon(
-                          onPressed: () {
+                          onPressed: () async {
                             var isValid = key.currentState?.validate();
                             if (isValid != null && isValid == true) {
-                              debugPrint(_cityName.text);
+                              var result = await createCity();
+                              debugPrint(result.toString());
                             }
                           },
                           icon: const Icon(Icons.add),

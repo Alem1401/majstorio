@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
+import 'package:majstorio_desktop/models/city.dart';
 import 'package:majstorio_desktop/screens/city_details_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class CitiesScreen extends StatefulWidget {
   const CitiesScreen({super.key});
@@ -13,7 +16,18 @@ class CitiesScreen extends StatefulWidget {
 class _CitiesScreenState extends State<CitiesScreen> {
   bool _isValid = false;
   final _searchController = TextEditingController();
+ 
+ Future<City> getCity() async {
+  var response =await http.get(Uri.parse("http://localhost:5100/Cities/1"));
+  debugPrint(response.body);
+  var city = City.fromJson(jsonDecode(response.body));
+  return city;
+ }
 
+ Future<void> printCity() async{
+  var response = await http.get(Uri.parse("http://localhost:5100/Cities"));
+  debugPrint(response.body);
+ }
   @override
   void dispose() {
     _searchController.dispose();
@@ -51,8 +65,8 @@ class _CitiesScreenState extends State<CitiesScreen> {
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    var success =await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
                         builder: (context) => CityDetailsScreen(),
@@ -131,7 +145,8 @@ class _CitiesScreenState extends State<CitiesScreen> {
                                     );
 
                                     if (result != true) return;
-                                    // The deletion of the city goes here.
+                                    var city =await getCity();
+                                    debugPrint(city.name);
                                   },
                                 ),
                               ),

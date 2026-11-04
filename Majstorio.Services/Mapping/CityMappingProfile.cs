@@ -11,18 +11,8 @@ public class CityMappingProfile : IRegister
     {
         config.NewConfig<City, CityResponse>();
 
-        config.NewConfig<CityInsertRequest, City>()
-            .Ignore(destination => destination.Id)
-            .Ignore(destination => destination.CreatedAtUtc)
-            .Ignore(destination => destination.IsActive);
-
         config.NewConfig<CityUpdateRequest, City>()
-            .Map(destination => destination.IsActive, source => source.isActive)
-            .Ignore(destination => destination.CreatedAtUtc);
-
-        config.NewConfig<CityDeleteRequest, City>()
-            .Ignore(destination => destination.Name)
-            .Ignore(destination => destination.IsActive)
+            .Ignore(destination => destination.Id)
             .Ignore(destination => destination.CreatedAtUtc);
     }
 }
