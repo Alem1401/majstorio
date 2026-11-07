@@ -3,6 +3,7 @@ using Majstorio.Model.Responses;
 using Majstorio.Model.Responses.City;
 using Majstorio.Model.Results;
 using Majstorio.Services.Database;
+using Majstorio.Services.Extensions;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,20 +36,11 @@ public class CityService : ICityService
         if (search.IsActive.HasValue)
             query = query.Where(city => city.IsActive == search.IsActive.Value);
 
-        var totalCount = await query.CountAsync();
-        var cities = await query
+        var page = await query
             .OrderBy(city => city.Name)
-            .Skip((search.Page - 1) * search.PageSize)
-            .Take(search.PageSize)
-            .ToListAsync();
+            .ToPagedAsync(search, cities => _mapper.Map<List<CityResponse>>(cities));
 
-        return Result<PagedResponse<CityResponse>>.Success(new PagedResponse<CityResponse>
-        {
-            Items = _mapper.Map<List<CityResponse>>(cities),
-            TotalCount = totalCount,
-            Page = search.Page,
-            PageSize = search.PageSize
-        });
+        return Result<PagedResponse<CityResponse>>.Success(page);
     }
 
     public async Task<Result<CityResponse>> GetCityByIdAsync(int id)

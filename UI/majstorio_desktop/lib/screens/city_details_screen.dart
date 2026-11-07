@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/city.dart';
+import 'package:majstorio_desktop/providers/city_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:provider/provider.dart';
 
 class CityDetailsScreen extends StatefulWidget {
-  const CityDetailsScreen({super.key});
+  const CityDetailsScreen({super.key, this.toUpdate});
+
+  final City? toUpdate;
 
   @override
   State<CityDetailsScreen> createState() => _CityDetailsScreenState();
@@ -14,19 +16,19 @@ class CityDetailsScreen extends StatefulWidget {
 
 class _CityDetailsScreenState extends State<CityDetailsScreen> {
   final _cityName = TextEditingController();
+  late CityProvider _cityProvider;
+  @override
+  void initState() {
+    super.initState();
+    _cityProvider = context.read<CityProvider>();
+    if (widget.toUpdate != null) {
+      isActive = widget.toUpdate!.isActive;
+      _cityName.text = widget.toUpdate!.name;
+    }
+  }
 
   var isActive = true;
   final key = GlobalKey<FormState>();
-
-  Future<int> createCity() async {
-    var newCity = City( name:  _cityName.text,isActive: isActive);
-    var response =await http.post(
-      Uri.parse("http://localhost:5100/Cities"),
-      body: jsonEncode(City.toJson(newCity)),
-      headers: {"content-type" : "application/json"}
-    );
-    return response.statusCode;
-  }
 
   @override
   void dispose() {
@@ -126,12 +128,33 @@ class _CityDetailsScreenState extends State<CityDetailsScreen> {
                           onPressed: () async {
                             var isValid = key.currentState?.validate();
                             if (isValid != null && isValid == true) {
-                              var result = await createCity();
-                              debugPrint(result.toString());
+                              int statusCode;
+                              if (widget.toUpdate != null) {
+                                var updatedCity = City(
+                                  id: widget.toUpdate!.id,
+                                  name: _cityName.text.trim(),
+                                  isActive: isActive,
+                                );
+                                statusCode = await _cityProvider.update(
+                                  updatedCity,
+                                );
+                              } else {
+                                var newCity = City(
+                                  name: _cityName.text.trim(),
+                                  isActive: isActive,
+                                );
+                                statusCode = await _cityProvider.post(newCity);
+                              }
+                              if (!context.mounted) return;
+                              if (statusCode == 200) {
+                                Navigator.pop(context, true);
+                              }
                             }
                           },
-                          icon: const Icon(Icons.add),
-                          label: const Text("Add"),
+                          icon: Icon(
+                            widget.toUpdate == null ? Icons.add : Icons.save,
+                          ),
+                          label: Text(widget.toUpdate == null ? "Add" : "Save"),
                         ),
                       ),
                     ],

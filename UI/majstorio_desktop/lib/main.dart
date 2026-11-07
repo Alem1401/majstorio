@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:majstorio_desktop/providers/city_provider.dart';
 import 'package:majstorio_desktop/screens/dashboard_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (ctx) => CityProvider())],
+    child: MyApp(),),
+  );
 }
 
 class MyApp extends StatelessWidget {

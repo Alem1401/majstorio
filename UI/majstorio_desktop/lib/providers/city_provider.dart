@@ -7,8 +7,8 @@ import 'package:majstorio_desktop/models/city.dart';
 class CityProvider extends ChangeNotifier {
   CityProvider();
 
-  Future<int> post(City city)  async{
-    var response =await http.post(
+  Future<int> post(City city) async {
+    var response = await http.post(
       Uri.parse("http://localhost:5100/Cities"),
       body: json.encode(City.toJson(city)),
       headers: {"content-type": "application/json"},
@@ -17,8 +17,29 @@ class CityProvider extends ChangeNotifier {
     return response.statusCode;
   }
 
-  Future<int> delete(City city) async{
-    var response = await http.delete(Uri.parse("http://localhost:5100/Cities/${city.id}"));
+  Future<City> getById(int id) async {
+    var response = await http.get(
+      Uri.parse("http://localhost:5100/Cities/$id"),
+    );
+    var jsonCity = json.decode(response.body);
+    var city = City.fromJson(jsonCity);
+    return city;
+  }
+
+  Future<int> delete(City city) async {
+    var response = await http.delete(
+      Uri.parse("http://localhost:5100/Cities/${city.id}"),
+    );
+    return response.statusCode;
+  }
+
+  Future<int> update(City city) async {
+    var jsonCity = City.toJson(city);
+    var response = await http.put(
+      Uri.parse("http://localhost:5100/Cities/${city.id}"),
+      headers: {"content-type": "application/json"},
+      body: json.encode(jsonCity),
+    );
     return response.statusCode;
   }
 }
