@@ -4,6 +4,7 @@ import 'package:majstorio_desktop/models/base_search_request.dart';
 import 'package:majstorio_desktop/models/paged_result.dart';
 import 'package:http/http.dart' as http;
 import  'dart:convert';
+import 'package:majstorio_desktop/constants.dart';
 class BaseProvider<T> extends ChangeNotifier{
 
   BaseProvider(this.route,this.fromJson);
@@ -12,7 +13,7 @@ class BaseProvider<T> extends ChangeNotifier{
 final T Function(Map<String, dynamic>)  fromJson;
  
  Future<PagedResult<T>> get (BaseSearchRequest request) async{
-  var response =await http.get(Uri.parse("http://localhost:5000/${route}").replace(queryParameters: request.toQueryParameters()));
+  var response =await http.get(Uri.parse("$baseUrl/${route}").replace(queryParameters: request.toQueryParameters()));
   var body = json.decode(response.body);
   var listJson = body['items'] as List;
   var list = <T>[];

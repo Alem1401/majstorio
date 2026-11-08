@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:majstorio_desktop/screens/categories_screen.dart';
 import 'package:majstorio_desktop/screens/cities_screen.dart';
 import 'package:majstorio_desktop/screens/dashboard_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
@@ -42,7 +43,12 @@ class MasterScreen extends StatelessWidget {
             _DrawerButton(
               icon: Icons.category_outlined,
               label: "Service Categories",
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CategoriesScreen()),
+                );
+              },
             ),
             _DrawerButton(
               icon: Icons.location_city_outlined,
