@@ -3,10 +3,13 @@ import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/city.dart';
 import 'package:majstorio_desktop/providers/city_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 import 'package:provider/provider.dart';
 
 class CityDetailsScreen extends StatefulWidget {
-  const CityDetailsScreen({super.key, this.toUpdate});
+  const CityDetailsScreen( {super.key,City? this.toUpdate,});
 
   final City? toUpdate;
 
@@ -19,16 +22,24 @@ class _CityDetailsScreenState extends State<CityDetailsScreen> {
   late CityProvider _cityProvider;
   @override
   void initState() {
-    super.initState();
     _cityProvider = context.read<CityProvider>();
-    if (widget.toUpdate != null) {
+    if(widget.toUpdate != null){
+      
+      loadCity();
       isActive = widget.toUpdate!.isActive;
-      _cityName.text = widget.toUpdate!.name;
+      _cityName.text= widget.toUpdate!.name;
     }
+    super.initState();
+  }
+
+  loadCity(){
+
   }
 
   var isActive = true;
   final key = GlobalKey<FormState>();
+
+
 
   @override
   void dispose() {
@@ -128,33 +139,28 @@ class _CityDetailsScreenState extends State<CityDetailsScreen> {
                           onPressed: () async {
                             var isValid = key.currentState?.validate();
                             if (isValid != null && isValid == true) {
-                              int statusCode;
-                              if (widget.toUpdate != null) {
-                                var updatedCity = City(
-                                  id: widget.toUpdate!.id,
-                                  name: _cityName.text.trim(),
-                                  isActive: isActive,
-                                );
-                                statusCode = await _cityProvider.update(
-                                  updatedCity,
-                                );
-                              } else {
-                                var newCity = City(
-                                  name: _cityName.text.trim(),
-                                  isActive: isActive,
-                                );
-                                statusCode = await _cityProvider.post(newCity);
+                              if(this.widget.toUpdate != null ){
+                                var updateDto = City(name: _cityName.text, isActive: isActive, id:  this.widget.toUpdate!.id);
+                               var statusCode =  await _cityProvider.update(updateDto);
+                               if(statusCode== 200){
+                                Navigator.pop(context,true);
+
+                               }
+                               //else will be implemented later probably will show a dialog describing the error 
+                               
                               }
-                              if (!context.mounted) return;
-                              if (statusCode == 200) {
-                                Navigator.pop(context, true);
+                              else{
+                                var newCity = City(name: _cityName.text, isActive: isValid);
+                                 var statusCode = await _cityProvider.post(newCity);
+                                 if(statusCode == 200){
+                                 Navigator.pop(context,true);}
                               }
                             }
                           },
-                          icon: Icon(
-                            widget.toUpdate == null ? Icons.add : Icons.save,
-                          ),
-                          label: Text(widget.toUpdate == null ? "Add" : "Save"),
+                          icon: const Icon(Icons.add),
+                          label: widget.toUpdate == null
+                              ? const Text("Add")
+                              : const Text("Update"),
                         ),
                       ),
                     ],

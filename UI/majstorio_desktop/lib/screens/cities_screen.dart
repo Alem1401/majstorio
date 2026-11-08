@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
+import 'package:majstorio_desktop/models/base_search_request.dart';
+import 'package:majstorio_desktop/models/city.dart';
+import 'package:majstorio_desktop/providers/city_provider.dart';
 import 'package:majstorio_desktop/screens/city_details_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
+
+import 'package:provider/provider.dart';
 
 class CitiesScreen extends StatefulWidget {
   const CitiesScreen({super.key});
@@ -11,9 +16,24 @@ class CitiesScreen extends StatefulWidget {
 }
 
 class _CitiesScreenState extends State<CitiesScreen> {
-  bool _isValid = false;
+  late CityProvider _cityProvider;
   final _searchController = TextEditingController();
- 
+  var cities = <City>[];
+
+  @override
+  void initState() {
+    _cityProvider = context.read<CityProvider>();
+
+    loadCities();
+    super.initState();
+  }
+
+  void loadCities() async {
+    var response = await _cityProvider.get(BaseSearchRequest());
+    setState(() {
+      cities = response.items;
+    });
+  }
 
   @override
   void dispose() {
@@ -53,12 +73,16 @@ class _CitiesScreenState extends State<CitiesScreen> {
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
                   onPressed: () async {
-                    var success =await Navigator.push<bool>(
+                    var success = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
                         builder: (context) => CityDetailsScreen(),
                       ),
                     );
+                    if(success != null && success==true){
+                      loadCities();
+
+                    }
                   },
                   icon: const Icon(Icons.add),
                   label: const Text('Add new city'),
@@ -79,17 +103,38 @@ class _CitiesScreenState extends State<CitiesScreen> {
                         columns: const [
                           DataColumn(label: Text('Name')),
                           DataColumn(label: Text('Active')),
-                          DataColumn(label: Text('Actions')),
+                          DataColumn(label: Text('Update')),
+                          DataColumn(label: Text("Delete"))
                         ],
-                        rows: [
-                          DataRow(
+                        rows: cities.map((city) {
+                          return DataRow(
                             cells: [
-                              const DataCell(Text('Name')),
+                              DataCell(Text(city.name)),
                               DataCell(
                                 Checkbox(
-                                  value: _isValid,
-                                  onChanged: (value) {
-                                    setState(() => _isValid = value ?? false);
+                                  value: city.isActive,
+                                  onChanged: (value) {},
+                                ),
+                              ),
+                              DataCell(
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined),
+                                  color: AppTheme.ink,
+                                  tooltip: 'Update',
+                                  onPressed: () async {
+                                    var result = await Navigator.push<int>(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (ctx) {
+                                          return CityDetailsScreen(
+                                            toUpdate: city,
+                                          );
+                                        },
+                                      ),
+                                    );
+                                    if (result != null && result == 200) {
+                                      loadCities();
+                                    }
                                   },
                                 ),
                               ),
@@ -101,43 +146,42 @@ class _CitiesScreenState extends State<CitiesScreen> {
                                   onPressed: () async {
                                     var result = await showDialog<bool>(
                                       context: context,
-                                      builder: (context) => AlertDialog(
-                                        icon: const Icon(
-                                          Icons.delete_outline,
-                                          color: AppTheme.danger,
-                                          size: 32,
-                                        ),
-                                        title: const Text("Delete city"),
-                                        content: const Text(
-                                          "Are you sure you want to delete this city? This action cannot be undone.",
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.pop(context, false);
-                                            },
-                                            child: const Text("No"),
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title: Text("Confirmation"),
+                                          content: Text(
+                                            "Are you sure you want to delete ${city.name}, this action can't be undone !",
                                           ),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.pop(context, true);
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppTheme.danger,
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context, true);
+                                              },
+                                              child: Text("Yes"),
                                             ),
-                                            child: const Text("Yes, delete"),
-                                          ),
-                                        ],
-                                      ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context, false);
+                                              },
+                                              child: Text("No"),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     );
-
-                                    if (result != true) return;
+                                    if (result != null && result == true) {
+                                      var statuscode = await _cityProvider
+                                          .delete(city);
+                                      if (statuscode == 200) {
+                                        loadCities();
+                                      }
+                                    }
                                   },
                                 ),
                               ),
                             ],
-                          ),
-                        ],
+                          );
+                        }).toList(),
                       ),
                     ),
                   );
