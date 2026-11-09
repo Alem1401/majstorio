@@ -1,7 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'package:majstorio_desktop/models/category.dart';
+import 'package:majstorio_desktop/models/category/category.dart';
 import 'package:majstorio_desktop/providers/base_provider.dart';
 import 'package:majstorio_desktop/constants.dart';
 

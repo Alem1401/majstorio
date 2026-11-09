@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/base_search_request.dart';
-import 'package:majstorio_desktop/models/city.dart';
-import 'package:majstorio_desktop/providers/city_provider.dart';
-import 'package:majstorio_desktop/screens/city_details_screen.dart';
+import 'package:majstorio_desktop/models/city/city.dart';
+import 'package:majstorio_desktop/providers/city/city_provider.dart';
+import 'package:majstorio_desktop/screens/city/city_details_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 
 import 'package:provider/provider.dart';

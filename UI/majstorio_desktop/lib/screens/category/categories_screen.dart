@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/base_search_request.dart';
-import 'package:majstorio_desktop/models/category.dart';
-import 'package:majstorio_desktop/providers/category_provider.dart';
-import 'package:majstorio_desktop/screens/category_details_screen.dart';
+import 'package:majstorio_desktop/models/category/category.dart';
+import 'package:majstorio_desktop/providers/category/category_provider.dart';
+import 'package:majstorio_desktop/screens/category/category_details_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 
 import 'package:provider/provider.dart';
@@ -103,7 +103,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                           DataColumn(label: Text('Name')),
                           DataColumn(label: Text('Active')),
                           DataColumn(label: Text('Update')),
-                          DataColumn(label: Text("Delete"))
+                          DataColumn(label: Text("Delete")),
                         ],
                         rows: categories.map((category) {
                           return DataRow(

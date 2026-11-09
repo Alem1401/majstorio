@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:majstorio_desktop/screens/categories_screen.dart';
-import 'package:majstorio_desktop/screens/cities_screen.dart';
+import 'package:majstorio_desktop/screens/category/categories_screen.dart';
+import 'package:majstorio_desktop/screens/city/cities_screen.dart';
 import 'package:majstorio_desktop/screens/dashboard_screen.dart';
+import 'package:majstorio_desktop/screens/news_post/news_post_details_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 
 // The frame shared by every admin screen: top bar, menu and the content of the screen.
@@ -57,6 +58,16 @@ class MasterScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => CitiesScreen()),
+                );
+              },
+            ),
+            _DrawerButton(
+              icon: Icons.article_outlined,
+              label: "Add new post",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (ctx) => NewsPostDetailsScreen()),
                 );
               },
             ),

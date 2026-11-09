@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
-import 'package:majstorio_desktop/models/category.dart';
-import 'package:majstorio_desktop/providers/category_provider.dart';
+import 'package:majstorio_desktop/models/category/category.dart';
+import 'package:majstorio_desktop/providers/category/category_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 
 import 'package:provider/provider.dart';

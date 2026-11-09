@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'package:majstorio_desktop/models/city.dart';
+import 'package:majstorio_desktop/models/city/city.dart';
 import 'package:majstorio_desktop/providers/base_provider.dart';
 import 'package:majstorio_desktop/constants.dart';
 
