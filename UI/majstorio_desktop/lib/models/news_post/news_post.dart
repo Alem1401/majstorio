@@ -23,13 +23,14 @@ class NewsPost {
       "title": this.title,
       "content": this.content,
       "imageUrl": this.imageUrl,
-      "publishedAtUtc": this.publishedAtUtc,
+      "publishedAtUtc": this.publishedAtUtc.toUtc().toIso8601String(),
     };
     return json;
   }
 
   factory NewsPost.fromJson(Map<String, dynamic> json) {
     return NewsPost(
+      id: json["id"],
       authorId: json["authorId"],
       title: json["title"],
       content: json["content"],

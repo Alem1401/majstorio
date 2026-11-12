@@ -18,6 +18,7 @@ public class NewsPostMappingProfile : IRegister
             .Ignore(destination => destination.Author);
 
         config.NewConfig<NewsPostUpdateRequest, NewsPost>()
+            .Ignore(destination => destination.Id)
             .Ignore(destination => destination.CreatedAtUtc)
             .Ignore(destination => destination.PublishedAtUtc)
             .Ignore(destination => destination.Author);

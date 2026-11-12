@@ -48,6 +48,7 @@ builder.Services.AddDbContext<MajstorioDbContext>(options =>
 builder.Services.AddSingleton<ICryptoService, CryptoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICityService, CityService>();
+builder.Services.AddScoped<INewsPostService, NewsPostService>();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();

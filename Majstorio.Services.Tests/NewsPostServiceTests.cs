@@ -57,7 +57,7 @@ public class NewsPostServiceTests : IDisposable
         var create = CreateRequest(1);
         create.Title = title!;
         create.Content = content!;
-        var update = new NewsPostUpdateRequest { Id = 1, AuthorId = 1 };
+        var update = new NewsPostUpdateRequest { AuthorId = 1 };
         update.Title = title!;
         update.Content = content!;
 
@@ -75,7 +75,7 @@ public class NewsPostServiceTests : IDisposable
     {
         var create = CreateRequest(1);
         create.ImageUrl = imageUrl;
-        var update = new NewsPostUpdateRequest { Id = 1, AuthorId = 1, Title = "Title", Content = "Content" };
+        var update = new NewsPostUpdateRequest { AuthorId = 1, Title = "Title", Content = "Content" };
         update.ImageUrl = imageUrl;
 
         Assert.False(new NewsPostCreateRequestValidator().Validate(create).IsValid);
@@ -102,7 +102,7 @@ public class NewsPostServiceTests : IDisposable
         var update = UpdateRequest(stored);
         update.ImageUrl = imageUrl!;
         Assert.True(new NewsPostUpdateRequestValidator().Validate(update).IsValid);
-        Assert.True((await _service.UpdateNewsPostAsync(update)).IsSuccess);
+        Assert.True((await _service.UpdateNewsPostAsync(stored.Id, update)).IsSuccess);
         _ctx.ChangeTracker.Clear();
         Assert.Equal(imageUrl?.Trim() ?? "", (await _ctx.NewsPosts.SingleAsync()).ImageUrl);
     }
@@ -129,7 +129,7 @@ public class NewsPostServiceTests : IDisposable
         update.Title = "  Edited title  ";
         update.Content = "  Edited content  ";
         update.ImageUrl = "  https://example.com/edited.jpg  ";
-        Assert.True((await _service.UpdateNewsPostAsync(update)).IsSuccess);
+        Assert.True((await _service.UpdateNewsPostAsync(post.Id, update)).IsSuccess);
         _ctx.ChangeTracker.Clear();
 
         var response = await _service.GetNewsPostByIdAsync(post.Id);
@@ -141,10 +141,10 @@ public class NewsPostServiceTests : IDisposable
         Assert.Equal("https://example.com/edited.jpg", response.Value.ImageUrl);
         Assert.Equal(publishedAt, response.Value.PublishedAtUtc);
         Assert.Equal(createdAt, (await _ctx.NewsPosts.SingleAsync()).CreatedAtUtc);
-        Assert.Single((await _service.GetAllNewsPostsAsync()).Value!);
+        Assert.Single((await _service.GetNewsPostsAsync(new NewsPostSearchRequest())).Value!.Items);
 
         Assert.True((await _service.DeleteNewsPostAsync(new() { Id = post.Id })).IsSuccess);
-        Assert.Empty((await _service.GetAllNewsPostsAsync()).Value!);
+        Assert.Empty((await _service.GetNewsPostsAsync(new NewsPostSearchRequest())).Value!.Items);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class NewsPostServiceTests : IDisposable
         request.AuthorId = 999;
         request.Title = "Changed title";
 
-        Assert.Equal(ErrorType.NotFound, (await _service.UpdateNewsPostAsync(request)).ErrorType);
+        Assert.Equal(ErrorType.NotFound, (await _service.UpdateNewsPostAsync(post.Id, request)).ErrorType);
         _ctx.ChangeTracker.Clear();
         var stored = await _ctx.NewsPosts.SingleAsync();
         Assert.Equal(post.AuthorId, stored.AuthorId);
@@ -169,7 +169,7 @@ public class NewsPostServiceTests : IDisposable
         var request = UpdateRequest(post);
         request.Title = "Changed title";
 
-        Assert.Equal(ErrorType.Forbidden, (await _service.UpdateNewsPostAsync(request)).ErrorType);
+        Assert.Equal(ErrorType.Forbidden, (await _service.UpdateNewsPostAsync(post.Id, request)).ErrorType);
         _ctx.ChangeTracker.Clear();
         Assert.Equal("Original title", (await _ctx.NewsPosts.SingleAsync()).Title);
     }
@@ -182,13 +182,13 @@ public class NewsPostServiceTests : IDisposable
         var request = UpdateRequest(post);
         request.AuthorId = newAuthor.Id;
 
-        Assert.True((await _service.UpdateNewsPostAsync(request)).IsSuccess);
+        Assert.True((await _service.UpdateNewsPostAsync(post.Id, request)).IsSuccess);
         _ctx.ChangeTracker.Clear();
         Assert.Equal(newAuthor.Id, (await _ctx.NewsPosts.SingleAsync()).AuthorId);
     }
 
     [Fact]
-    public async Task GetAll_ReturnsNewestFirstWithDeterministicOrderForEqualTimestamps()
+    public async Task Search_ReturnsNewestFirstWithDeterministicOrderForEqualTimestamps()
     {
         var author = await AddAuthorAsync();
         var oldest = await AddPostAsync(author);
@@ -199,11 +199,46 @@ public class NewsPostServiceTests : IDisposable
         newestWithSameTimestamp.PublishedAtUtc = newer.PublishedAtUtc;
         await _ctx.SaveChangesAsync();
 
-        var result = await _service.GetAllNewsPostsAsync();
+        var result = await _service.GetNewsPostsAsync(new NewsPostSearchRequest());
 
         Assert.True(result.IsSuccess);
         Assert.Equal(new[] { newestWithSameTimestamp.Id, newer.Id, oldest.Id },
-            result.Value!.Select(post => post.Id));
+            result.Value!.Items.Select(post => post.Id));
+    }
+
+    [Fact]
+    public async Task Search_FiltersByTitleAndAuthorAndPages()
+    {
+        var first = await AddAuthorAsync();
+        var second = await AddAuthorAsync();
+        var kitchen = await AddPostAsync(first);
+        kitchen.Title = "Kitchen tips";
+        var bathroom = await AddPostAsync(first);
+        bathroom.Title = "Bathroom tips";
+        var other = await AddPostAsync(second);
+        other.Title = "Kitchen news";
+        await _ctx.SaveChangesAsync();
+
+        var byTitle = await _service.GetNewsPostsAsync(new NewsPostSearchRequest { Title = " Kitchen " });
+        var byAuthor = await _service.GetNewsPostsAsync(new NewsPostSearchRequest { AuthorId = first.Id });
+        var paged = await _service.GetNewsPostsAsync(new NewsPostSearchRequest { Page = 2, PageSize = 2 });
+
+        Assert.Equal(2, byTitle.Value!.Items.Count);
+        Assert.All(byTitle.Value.Items, post => Assert.Contains("Kitchen", post.Title));
+        Assert.Equal(2, byAuthor.Value!.Items.Count);
+        Assert.Single(paged.Value!.Items);
+    }
+
+    [Fact]
+    public async Task Create_ReturnsTheCreatedPost()
+    {
+        var author = await AddAuthorAsync();
+
+        var result = await _service.CreateNewsPostAsync(CreateRequest(author.Id));
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value!.Id > 0);
+        Assert.Equal("New title", result.Value.Title);
     }
 
     [Fact]
@@ -211,7 +246,7 @@ public class NewsPostServiceTests : IDisposable
     {
         Assert.Equal(ErrorType.NotFound, (await _service.GetNewsPostByIdAsync(999)).ErrorType);
         Assert.Equal(ErrorType.NotFound,
-            (await _service.UpdateNewsPostAsync(new() { Id = 999 })).ErrorType);
+            (await _service.UpdateNewsPostAsync(999, new())).ErrorType);
         Assert.Equal(ErrorType.NotFound,
             (await _service.DeleteNewsPostAsync(new() { Id = 999 })).ErrorType);
     }
@@ -223,7 +258,6 @@ public class NewsPostServiceTests : IDisposable
             error => error.PropertyName == nameof(NewsPostCreateRequest.AuthorId));
         var update = new NewsPostUpdateRequest { Title = "Title", Content = "Content" };
         var errors = new NewsPostUpdateRequestValidator().Validate(update).Errors;
-        Assert.Contains(errors, error => error.PropertyName == nameof(update.Id));
         Assert.Contains(errors, error => error.PropertyName == nameof(update.AuthorId));
         Assert.False(new NewsPostDeleteRequestValidator().Validate(new NewsPostDeleteRequest()).IsValid);
     }
@@ -235,7 +269,7 @@ public class NewsPostServiceTests : IDisposable
 
     private static NewsPostUpdateRequest UpdateRequest(NewsPost post) => new()
     {
-        Id = post.Id, AuthorId = post.AuthorId, Title = post.Title,
+        AuthorId = post.AuthorId, Title = post.Title,
         Content = post.Content, ImageUrl = post.ImageUrl
     };
 

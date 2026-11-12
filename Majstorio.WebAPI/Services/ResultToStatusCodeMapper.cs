@@ -7,7 +7,7 @@ public sealed class ResultToStatusCodeMapper
 {
     public IActionResult Map(Result result)
     {
-        if (result.IsSuccess)
+        if (result.IsSuccess)           
             return new OkResult();
 
         var statusCode = result.ErrorType switch
