@@ -66,9 +66,9 @@ public class OfferServiceTests : IDisposable
         Assert.Equal(update.DurationMinutes, response.Value.DurationMinutes);
         Assert.Equal((int)OfferStatus.Pending, response.Value.Status);
         Assert.Equal(createdAt, (await _ctx.Offers.SingleAsync()).CreatedAtUtc);
-        Assert.Single((await _service.GetAllOffersAsync()).Value!);
+        Assert.Single((await _service.GetOffersAsync(new())).Value!.Items);
         Assert.True((await _service.DeleteOfferAsync(new() { Id = offer.Id })).IsSuccess);
-        Assert.Empty((await _service.GetAllOffersAsync()).Value!);
+        Assert.Empty((await _service.GetOffersAsync(new())).Value!.Items);
     }
 
     [Theory]

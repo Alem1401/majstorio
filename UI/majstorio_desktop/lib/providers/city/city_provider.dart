@@ -20,7 +20,7 @@ class CityProvider extends BaseProvider<City>{
   }
 
   Future<City> getById(int id) async {
-    var response = await http.get(Uri.parse("$baseUrl/Cities${id}"));
+    var response = await http.get(Uri.parse("$baseUrl/Cities$id"));
     var jsonCity =  json.decode(response.body);
     var city = City.fromJson(jsonCity);
     return city;

@@ -19,11 +19,11 @@ class NewsPost {
 
   Map<String, dynamic> toJson() {
     var json = {
-      "authorId": this.authorId,
-      "title": this.title,
-      "content": this.content,
-      "imageUrl": this.imageUrl,
-      "publishedAtUtc": this.publishedAtUtc.toUtc().toIso8601String(),
+      "authorId": authorId,
+      "title": title,
+      "content": content,
+      "imageUrl": imageUrl,
+      "publishedAtUtc": publishedAtUtc.toUtc().toIso8601String(),
     };
     return json;
   }

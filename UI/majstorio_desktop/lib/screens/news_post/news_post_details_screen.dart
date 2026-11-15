@@ -155,6 +155,7 @@ class _NewsPostDetailsScreenState extends State<NewsPostDetailsScreen> {
                           return null;
                         },
                       ),
+                    
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _imageController,

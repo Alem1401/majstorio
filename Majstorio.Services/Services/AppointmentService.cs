@@ -1,8 +1,10 @@
 using Majstorio.Model.Requests.Appointment;
+using Majstorio.Model.Responses;
 using Majstorio.Model.Responses.Appointment;
 using Majstorio.Model.Results;
 using Majstorio.Services.Database;
 using Majstorio.Services.Enums;
+using Majstorio.Services.Extensions;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
 
@@ -79,25 +81,60 @@ public class AppointmentService : IAppointmentService
         if (appointment == null)
             return Result.Failure(ErrorType.NotFound, "Appointment not found.");
 
+        // An appointment with payments, a review or a status history is part of the record of the job.
+        var isUsed = await _ctx.Payments.AnyAsync(payment => payment.AppointmentId == appointment.Id)
+            || await _ctx.Reviews.AnyAsync(review => review.AppointmentId == appointment.Id)
+            || await _ctx.StatusHistories.AnyAsync(history => history.AppointmentId == appointment.Id);
+        if (isUsed)
+            return Result.Failure(ErrorType.Conflict,
+                "This appointment has payments, a review or a status history, so it cannot be deleted. Cancel it instead.");
+
         _ctx.Appointments.Remove(appointment);
         await _ctx.SaveChangesAsync();
         return Result.Success();
     }
 
-    public async Task<Result<List<AppointmentResponse>>> GetAllAppointmentsAsync()
+    public async Task<Result<PagedResponse<AppointmentResponse>>> GetAppointmentsAsync(AppointmentSearchRequest search)
     {
-        var appointments = await _ctx.Appointments.ToListAsync();
-        return Result<List<AppointmentResponse>>.Success(
-            _mapper.Map<List<AppointmentResponse>>(appointments));
+        var query = AppointmentsWithNames();
+
+        if (search.Status.HasValue)
+        {
+            var status = (AppointmentStatus)search.Status.Value;
+            query = query.Where(appointment => appointment.Status == status);
+        }
+
+        var page = await query
+            .OrderByDescending(appointment => appointment.StartUtc)
+            .ThenByDescending(appointment => appointment.Id)
+            .ToPagedAsync(search, appointments => appointments.Select(ToResponse).ToList());
+
+        return Result<PagedResponse<AppointmentResponse>>.Success(page);
     }
 
     public async Task<Result<AppointmentResponse>> GetAppointmentByIdAsync(int id)
     {
-        var appointment = await _ctx.Appointments.FirstOrDefaultAsync(appointment => appointment.Id == id);
+        var appointment = await AppointmentsWithNames().FirstOrDefaultAsync(appointment => appointment.Id == id);
         if (appointment == null)
             return Result<AppointmentResponse>.Failure(ErrorType.NotFound, "Appointment not found.");
 
-        return Result<AppointmentResponse>.Success(_mapper.Map<AppointmentResponse>(appointment));
+        return Result<AppointmentResponse>.Success(ToResponse(appointment));
+    }
+
+    // Loads the people and the category with the appointments in one query, so lists can show names instead of ids.
+    private IQueryable<Appointment> AppointmentsWithNames() => _ctx.Appointments.AsNoTracking()
+        .Include(appointment => appointment.Offer.ServiceRequest.Customer)
+        .Include(appointment => appointment.Offer.ServiceRequest.ServiceCategory)
+        .Include(appointment => appointment.Offer.TradespersonProfile.User);
+
+    private AppointmentResponse ToResponse(Appointment appointment)
+    {
+        var response = _mapper.Map<AppointmentResponse>(appointment);
+        var offer = appointment.Offer;
+        response.CustomerName = PersonNames.Full(offer?.ServiceRequest?.Customer);
+        response.TradespersonName = PersonNames.Full(offer?.TradespersonProfile?.User);
+        response.ServiceCategoryName = offer?.ServiceRequest?.ServiceCategory?.Name ?? string.Empty;
+        return response;
     }
 
     private async Task<Result> ValidateAppointmentAsync(

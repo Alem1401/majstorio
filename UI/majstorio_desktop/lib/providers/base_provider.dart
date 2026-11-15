@@ -13,7 +13,7 @@ class BaseProvider<T> extends ChangeNotifier{
 final T Function(Map<String, dynamic>)  fromJson;
  
  Future<PagedResult<T>> get (BaseSearchRequest request) async{
-  var response =await http.get(Uri.parse("$baseUrl/${route}").replace(queryParameters: request.toQueryParameters()));
+  var response =await http.get(Uri.parse("$baseUrl/$route").replace(queryParameters: request.toQueryParameters()));
   var body = json.decode(response.body);
   var listJson = body['items'] as List;
   var list = <T>[];

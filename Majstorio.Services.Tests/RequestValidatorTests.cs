@@ -109,6 +109,8 @@ public class RequestValidatorTests
                 {
                     "Email" => "person@example.com",
                     "DecisionReason" => null,
+                    "PhoneNumber" => "+387 61 123 456",
+                    "Role" => "Customer",
                     "ImageUrl" or "ProfileImageUrl" => "https://example.com/image.jpg",
                     _ => "Valid text"
                 });

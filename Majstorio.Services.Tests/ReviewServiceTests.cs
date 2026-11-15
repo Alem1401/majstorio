@@ -47,10 +47,10 @@ public class ReviewServiceTests : IDisposable
         Assert.Equal(4, result.Value.Rating);
         Assert.Equal("Good work.", result.Value.Comment);
         Assert.Equal(createdAt, (await _ctx.Reviews.SingleAsync()).CreatedAtUtc);
-        Assert.Single((await _service.GetAllReviewsAsync()).Value!);
+        Assert.Single((await _service.GetReviewsAsync(new())).Value!.Items);
 
         Assert.True((await _service.DeleteReviewAsync(new() { Id = review.Id })).IsSuccess);
-        Assert.Empty((await _service.GetAllReviewsAsync()).Value!);
+        Assert.Empty((await _service.GetReviewsAsync(new())).Value!.Items);
     }
 
     [Fact]

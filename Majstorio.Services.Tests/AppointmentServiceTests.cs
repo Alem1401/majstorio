@@ -147,7 +147,7 @@ public class AppointmentServiceTests : IDisposable
     [Fact]
     public async Task Crud_PersistsAndMapsAppointments()
     {
-        var offer = await AddOfferAsync();
+        var offer = await AddOfferWithPeopleAsync();
         Assert.True((await _service.CreateAppointmentAsync(CreateRequest(offer.Id))).IsSuccess);
         var appointment = await _ctx.Appointments.SingleAsync();
         var createdAt = appointment.CreatedAtUtc;
@@ -164,10 +164,13 @@ public class AppointmentServiceTests : IDisposable
         Assert.Equal(update.StartUtc, response.Value.StartUtc);
         Assert.Equal(update.EndUtc, response.Value.EndUtc);
         Assert.Equal(update.Status, response.Value.Status);
+        Assert.Equal("Amra Customer", response.Value.CustomerName);
+        Assert.Equal("Emir Tradesperson", response.Value.TradespersonName);
+        Assert.Equal("Plumbing", response.Value.ServiceCategoryName);
         Assert.Equal(createdAt, (await _ctx.Appointments.SingleAsync()).CreatedAtUtc);
-        Assert.Single((await _service.GetAllAppointmentsAsync()).Value!);
+        Assert.Single((await _service.GetAppointmentsAsync(new())).Value!.Items);
         Assert.True((await _service.DeleteAppointmentAsync(new() { Id = appointment.Id })).IsSuccess);
-        Assert.Empty((await _service.GetAllAppointmentsAsync()).Value!);
+        Assert.Empty((await _service.GetAppointmentsAsync(new())).Value!.Items);
     }
 
     [Fact]
@@ -407,6 +410,33 @@ public class AppointmentServiceTests : IDisposable
         await _ctx.SaveChangesAsync();
         return offer;
     }
+
+    // An offer with its customer, tradesperson and category, as the list and detail responses load them.
+    private async Task<Offer> AddOfferWithPeopleAsync()
+    {
+        var offer = new Offer
+        {
+            Status = OfferStatus.Accepted,
+            TradespersonProfile = new TradespersonProfile
+            {
+                User = NewUser("emir", "Emir", "Tradesperson"), City = new City { Name = "Mostar" }
+            },
+            ServiceRequest = new ServiceRequest
+            {
+                Customer = NewUser("amra", "Amra", "Customer"), City = new City { Name = "Sarajevo" },
+                ServiceCategory = new ServiceCategory { Name = "Plumbing" }
+            }
+        };
+        _ctx.Offers.Add(offer);
+        await _ctx.SaveChangesAsync();
+        return offer;
+    }
+
+    private static ApplicationUser NewUser(string userName, string firstName, string lastName) => new()
+    {
+        UserName = userName, Email = $"{userName}@example.com", FirstName = firstName, LastName = lastName,
+        PasswordHash = "hash", PasswordSalt = "salt"
+    };
 
     private async Task<Appointment> AddAppointmentAsync(
         Offer offer, AppointmentStatus status = AppointmentStatus.Pending, DateTime? start = null)

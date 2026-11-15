@@ -8,7 +8,7 @@ The application is under development.
 
 - The database schema is defined through EF Core configurations and created by migrations. The API applies pending migrations and the seed data on startup.
 - The service layer covers cities, service categories, users, news posts, offers, appointments, reviews and authentication.
-- The only exposed API endpoints so far are the city endpoints listed below.
+- The exposed API endpoints are `/Cities`, `/ServiceCategories`, `/NewsPost`, `/Users`, `/Offers`, `/Appointments` and `/Reviews`. Each has a paged list, get by id, update and delete; `/Users` has no create because accounts are registered, not added by an administrator.
 - The worker host exists; RabbitMQ publishing and message processing are planned.
 - The Flutter desktop app is in `UI/majstorio_desktop`; the mobile app is planned under `UI/majstorio_mobile`.
 
@@ -84,7 +84,7 @@ The first start creates the `230070` database, applies the migrations and insert
 
 ### City endpoints
 
-The city endpoints are temporarily open without a token while the desktop login is being built. They must require the administrator role before submission.
+All endpoints are temporarily open without a token while the desktop login is being built. They must require a token and the right role before submission. The other endpoints follow the same shape as the city endpoints below.
 
 | Method | Route | Purpose |
 | --- | --- | --- |

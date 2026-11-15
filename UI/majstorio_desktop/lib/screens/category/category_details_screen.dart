@@ -7,7 +7,7 @@ import 'package:majstorio_desktop/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
 class CategoryDetailsScreen extends StatefulWidget {
-  const CategoryDetailsScreen({super.key, Category? this.toUpdate});
+  const CategoryDetailsScreen({super.key, this.toUpdate});
 
   final Category? toUpdate;
 
@@ -130,11 +130,11 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                           onPressed: () async {
                             var isValid = key.currentState?.validate();
                             if (isValid != null && isValid == true) {
-                              if (this.widget.toUpdate != null) {
+                              if (widget.toUpdate != null) {
                                 var updateDto = Category(
                                   name: _categoryName.text,
                                   isActive: isActive,
-                                  id: this.widget.toUpdate!.id,
+                                  id: widget.toUpdate!.id,
                                 );
                                 var statusCode = await _categoryProvider.update(updateDto);
                                 if (statusCode == 200) {

@@ -5,6 +5,7 @@ import 'package:majstorio_desktop/models/news_post/news_post.dart';
 import 'package:majstorio_desktop/providers/news_post/news_provider.dart';
 import 'package:majstorio_desktop/screens/news_post/news_post_details_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
+import 'package:majstorio_desktop/widgets/dialogs.dart';
 import 'package:provider/provider.dart';
 
 class NewsPostScreen extends StatefulWidget {
@@ -113,7 +114,18 @@ class _NewsPostScreenState extends State<NewsPostScreen> {
                                   icon: const Icon(Icons.edit_outlined),
                                   color: AppTheme.ink,
                                   tooltip: 'Update',
-                                  onPressed: () {},
+                                  onPressed: () async {
+                                    var success = await Navigator.push<bool>(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (ctx) =>
+                                            NewsPostDetailsScreen(post: n),
+                                      ),
+                                    );
+                                    if (success == true) {
+                                      loadNews();
+                                    }
+                                  },
                                 ),
                               ),
                               DataCell(
@@ -121,7 +133,21 @@ class _NewsPostScreenState extends State<NewsPostScreen> {
                                   icon: const Icon(Icons.delete_outline),
                                   color: AppTheme.danger,
                                   tooltip: 'Delete',
-                                  onPressed: () {},
+                                  onPressed: () async {
+                                    var confirmed = await showConfirmDialog(
+                                      context,
+                                      "Are you sure you want to delete ${n.title}, this action can't be undone !",
+                                    );
+                                    if (!confirmed) return;
+                                    var statusCode = await _provider.delete(n);
+                                    if (!context.mounted) return;
+                                    if (statusCode == 200) {
+                                      showMessage(context, "The post was deleted.");
+                                      loadNews();
+                                    } else {
+                                      showMessage(context, "The post could not be deleted. Try again.");
+                                    }
+                                  },
                                 ),
                               ),
                             ],

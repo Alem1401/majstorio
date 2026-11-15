@@ -10,4 +10,6 @@ public class UserResponse
     public string LastName { get; set; } = string.Empty;
     public string? ProfileImageUrl { get; set; }
     public bool IsActive { get; set; }
+    // Customer, Tradesperson or Administrator.
+    public string Role { get; set; } = string.Empty;
 }

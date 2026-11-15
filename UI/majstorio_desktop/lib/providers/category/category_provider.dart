@@ -19,7 +19,7 @@ class CategoryProvider extends BaseProvider<Category>{
   }
 
   Future<Category> getById(int id) async {
-    var response = await http.get(Uri.parse("$baseUrl/ServiceCategories/${id}"));
+    var response = await http.get(Uri.parse("$baseUrl/ServiceCategories/$id"));
     var jsonCategory =  json.decode(response.body);
     var category = Category.fromJson(jsonCategory);
     return category;

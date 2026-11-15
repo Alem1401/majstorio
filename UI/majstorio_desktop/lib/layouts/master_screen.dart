@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/screens/category/categories_screen.dart';
 import 'package:majstorio_desktop/screens/city/cities_screen.dart';
 import 'package:majstorio_desktop/screens/dashboard_screen.dart';
-import 'package:majstorio_desktop/screens/news_post/news_post_details_screen.dart';
+import 'package:majstorio_desktop/screens/appointment/appointments_screen.dart';
 import 'package:majstorio_desktop/screens/news_post/news_post_screen.dart';
+import 'package:majstorio_desktop/screens/offer/offers_screen.dart';
+import 'package:majstorio_desktop/screens/review/reviews_screen.dart';
+import 'package:majstorio_desktop/screens/user/users_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 
 // The frame shared by every admin screen: top bar, menu and the content of the screen.
@@ -35,12 +38,42 @@ class MasterScreen extends StatelessWidget {
             _DrawerButton(
               icon: Icons.people_outline,
               label: "Users and Professionals",
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => UsersScreen()),
+                );
+              },
             ),
             _DrawerButton(
               icon: Icons.assignment_outlined,
-              label: "Requests, Offers and Appointments",
-              onPressed: () {},
+              label: "Offers",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => OffersScreen()),
+                );
+              },
+            ),
+            _DrawerButton(
+              icon: Icons.event_outlined,
+              label: "Appointments",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AppointmentsScreen()),
+                );
+              },
+            ),
+            _DrawerButton(
+              icon: Icons.star_outline,
+              label: "Reviews",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ReviewsScreen()),
+                );
+              },
             ),
             _DrawerButton(
               icon: Icons.category_outlined,

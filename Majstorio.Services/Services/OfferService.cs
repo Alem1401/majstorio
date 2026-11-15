@@ -1,8 +1,10 @@
 using Majstorio.Model.Requests.Offer;
+using Majstorio.Model.Responses;
 using Majstorio.Model.Responses.Offer;
 using Majstorio.Model.Results;
 using Majstorio.Services.Database;
 using Majstorio.Services.Enums;
+using Majstorio.Services.Extensions;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
 
@@ -150,19 +152,46 @@ public class OfferService : IOfferService
         return Result.Success();
     }
 
-    public async Task<Result<List<OfferResponse>>> GetAllOffersAsync()
+    public async Task<Result<PagedResponse<OfferResponse>>> GetOffersAsync(OfferSearchRequest search)
     {
-        var offers = await _ctx.Offers.ToListAsync();
-        return Result<List<OfferResponse>>.Success(_mapper.Map<List<OfferResponse>>(offers));
+        var query = OffersWithNames();
+
+        if (search.Status.HasValue)
+        {
+            var status = (OfferStatus)search.Status.Value;
+            query = query.Where(offer => offer.Status == status);
+        }
+
+        var page = await query
+            .OrderByDescending(offer => offer.CreatedAtUtc)
+            .ThenByDescending(offer => offer.Id)
+            .ToPagedAsync(search, offers => offers.Select(ToResponse).ToList());
+
+        return Result<PagedResponse<OfferResponse>>.Success(page);
     }
 
     public async Task<Result<OfferResponse>> GetOfferByIdAsync(int id)
     {
-        var offer = await _ctx.Offers.FirstOrDefaultAsync(offer => offer.Id == id);
+        var offer = await OffersWithNames().FirstOrDefaultAsync(offer => offer.Id == id);
         if (offer == null)
             return Result<OfferResponse>.Failure(ErrorType.NotFound, "Offer not found.");
 
-        return Result<OfferResponse>.Success(_mapper.Map<OfferResponse>(offer));
+        return Result<OfferResponse>.Success(ToResponse(offer));
+    }
+
+    // Loads the people and the category with the offers in one query, so lists can show names instead of ids.
+    private IQueryable<Offer> OffersWithNames() => _ctx.Offers.AsNoTracking()
+        .Include(offer => offer.ServiceRequest).ThenInclude(request => request.Customer)
+        .Include(offer => offer.ServiceRequest).ThenInclude(request => request.ServiceCategory)
+        .Include(offer => offer.TradespersonProfile).ThenInclude(profile => profile.User);
+
+    private OfferResponse ToResponse(Offer offer)
+    {
+        var response = _mapper.Map<OfferResponse>(offer);
+        response.CustomerName = PersonNames.Full(offer.ServiceRequest?.Customer);
+        response.TradespersonName = PersonNames.Full(offer.TradespersonProfile?.User);
+        response.ServiceCategoryName = offer.ServiceRequest?.ServiceCategory?.Name ?? string.Empty;
+        return response;
     }
 
     private async Task<Result> ValidateOfferAsync(int serviceRequestId, int tradespersonProfileId, decimal price)

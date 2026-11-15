@@ -11,7 +11,7 @@ class NewsProvider extends BaseProvider<NewsPost> {
   Future<int> post(NewsPost post) async {
     var jsonPost = post.toJson();
     var response = await http.post(
-      Uri.parse("${baseUrl}/NewsPost"),
+      Uri.parse("$baseUrl/NewsPost"),
       headers: {"content-type": "application/json"},
       body: json.encode(jsonPost),
     );
@@ -21,7 +21,7 @@ class NewsProvider extends BaseProvider<NewsPost> {
 
   Future<int> delete(NewsPost post) async {
     var response = await http.delete(
-      Uri.parse("${baseUrl}/NewsPost/${post.id}"),
+      Uri.parse("$baseUrl/NewsPost/${post.id}"),
     );
     return response.statusCode;
   }
@@ -29,7 +29,7 @@ class NewsProvider extends BaseProvider<NewsPost> {
   Future<int> update(NewsPost post) async {
     var jsonPost = post.toJson();
     var response = await http.put(
-      Uri.parse("${baseUrl}/NewsPost/${post.id}"),
+      Uri.parse("$baseUrl/NewsPost/${post.id}"),
       body: json.encode(jsonPost),
       headers: {"content-type": "application/json"},
     );

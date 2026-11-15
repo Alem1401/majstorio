@@ -9,7 +9,7 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 
 class CityDetailsScreen extends StatefulWidget {
-  const CityDetailsScreen( {super.key,City? this.toUpdate,});
+  const CityDetailsScreen( {super.key,this.toUpdate,});
 
   final City? toUpdate;
 
@@ -32,7 +32,7 @@ class _CityDetailsScreenState extends State<CityDetailsScreen> {
     super.initState();
   }
 
-  loadCity(){
+  void loadCity(){
 
   }
 
@@ -139,8 +139,8 @@ class _CityDetailsScreenState extends State<CityDetailsScreen> {
                           onPressed: () async {
                             var isValid = key.currentState?.validate();
                             if (isValid != null && isValid == true) {
-                              if(this.widget.toUpdate != null ){
-                                var updateDto = City(name: _cityName.text, isActive: isActive, id:  this.widget.toUpdate!.id);
+                              if(widget.toUpdate != null ){
+                                var updateDto = City(name: _cityName.text, isActive: isActive, id:  widget.toUpdate!.id);
                                var statusCode =  await _cityProvider.update(updateDto);
                                if(statusCode== 200){
                                 Navigator.pop(context,true);

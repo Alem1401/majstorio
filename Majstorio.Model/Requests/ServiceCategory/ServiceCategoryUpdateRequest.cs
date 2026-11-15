@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace Majstorio.Model.Requests.ServiceCategory;
 
-namespace Majstorio.Model.Requests.ServiceCategory
+// The category id comes from the route (PUT /ServiceCategories/{id}), not from the body.
+public class ServiceCategoryUpdateRequest
 {
-    public class ServiceCategoryUpdateRequest
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-    }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
 }

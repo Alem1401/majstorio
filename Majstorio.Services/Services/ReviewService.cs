@@ -1,8 +1,10 @@
 using Majstorio.Model.Requests.Review;
+using Majstorio.Model.Responses;
 using Majstorio.Model.Responses.Review;
 using Majstorio.Model.Results;
 using Majstorio.Services.Database;
 using Majstorio.Services.Enums;
+using Majstorio.Services.Extensions;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
 
@@ -69,18 +71,40 @@ public class ReviewService : IReviewService
         return Result.Success();
     }
 
-    public async Task<Result<List<ReviewResponse>>> GetAllReviewsAsync()
+    public async Task<Result<PagedResponse<ReviewResponse>>> GetReviewsAsync(ReviewSearchRequest search)
     {
-        var reviews = await _ctx.Reviews.ToListAsync();
-        return Result<List<ReviewResponse>>.Success(_mapper.Map<List<ReviewResponse>>(reviews));
+        var query = ReviewsWithNames();
+
+        if (search.Rating.HasValue)
+            query = query.Where(review => review.Rating == search.Rating.Value);
+
+        var page = await query
+            .OrderByDescending(review => review.CreatedAtUtc)
+            .ThenByDescending(review => review.Id)
+            .ToPagedAsync(search, reviews => reviews.Select(ToResponse).ToList());
+
+        return Result<PagedResponse<ReviewResponse>>.Success(page);
     }
 
     public async Task<Result<ReviewResponse>> GetReviewByIdAsync(int id)
     {
-        var review = await _ctx.Reviews.FirstOrDefaultAsync(review => review.Id == id);
+        var review = await ReviewsWithNames().FirstOrDefaultAsync(review => review.Id == id);
         if (review == null)
             return Result<ReviewResponse>.Failure(ErrorType.NotFound, "Review not found.");
 
-        return Result<ReviewResponse>.Success(_mapper.Map<ReviewResponse>(review));
+        return Result<ReviewResponse>.Success(ToResponse(review));
+    }
+
+    // Loads the customer and the tradesperson with the reviews in one query, so lists can show names instead of ids.
+    private IQueryable<Review> ReviewsWithNames() => _ctx.Reviews.AsNoTracking()
+        .Include(review => review.Customer)
+        .Include(review => review.TradespersonProfile).ThenInclude(profile => profile.User);
+
+    private ReviewResponse ToResponse(Review review)
+    {
+        var response = _mapper.Map<ReviewResponse>(review);
+        response.CustomerName = PersonNames.Full(review.Customer);
+        response.TradespersonName = PersonNames.Full(review.TradespersonProfile?.User);
+        return response;
     }
 }

@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace Majstorio.Model.Responses.ServiceCategory;
 
-namespace Majstorio.Model.Responses.ServiceCategory
+public class ServiceCategoryResponse
 {
-    public class ServiceCategoryResponse
-    {
-        public int Id { get; set; }
-
-        public string Name { get; set; }
-    }
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
 }
