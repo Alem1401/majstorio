@@ -5,6 +5,7 @@ import 'package:majstorio_desktop/screens/dashboard_screen.dart';
 import 'package:majstorio_desktop/screens/appointment/appointments_screen.dart';
 import 'package:majstorio_desktop/screens/news_post/news_post_screen.dart';
 import 'package:majstorio_desktop/screens/offer/offers_screen.dart';
+import 'package:majstorio_desktop/screens/report/reports_screen.dart';
 import 'package:majstorio_desktop/screens/review/reviews_screen.dart';
 import 'package:majstorio_desktop/screens/user/users_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
@@ -108,7 +109,12 @@ class MasterScreen extends StatelessWidget {
             _DrawerButton(
               icon: Icons.picture_as_pdf_outlined,
               label: "Reports",
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ReportsScreen()),
+                );
+              },
             ),
           ],
         ),

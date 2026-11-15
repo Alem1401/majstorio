@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/base_search_request.dart';
@@ -20,6 +22,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   final _searchController = TextEditingController();
   var categories = <Category>[];
 
+   Timer? _debouncer;
   @override
   void initState() {
     _categoryProvider = context.read<CategoryProvider>();
@@ -32,6 +35,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     var response = await _categoryProvider.get(BaseSearchRequest());
     setState(() {
       categories = response.items;
+    });
+  }
+
+  void searchCategories(String searchTerm){
+    _debouncer?.cancel();
+    _debouncer = Timer(Duration(milliseconds: 400),(){
+      debugPrint(searchTerm);
     });
   }
 
@@ -60,7 +70,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       child: TextFormField(
                         controller: _searchController,
                         onChanged: (val) {
-                          debugPrint(val);
+                          searchCategories(val);
                         },
                         decoration: const InputDecoration(
                           labelText: 'Search Categories',
