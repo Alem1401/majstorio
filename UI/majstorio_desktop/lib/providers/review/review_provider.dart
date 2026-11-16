@@ -8,7 +8,8 @@ class ReviewProvider extends BaseProvider<Review> {
   ReviewProvider() : super("Reviews", Review.fromJson);
 
   Future<int> delete(Review review) async {
-    var response = await http.delete(Uri.parse("$baseUrl/Reviews/${review.id}"));
+    var response = await http.delete(Uri.parse("$baseUrl/Reviews/${review.id}"), headers: authHeaders());
+    checkUnauthorized(response);
     return response.statusCode;
   }
 
@@ -16,9 +17,10 @@ class ReviewProvider extends BaseProvider<Review> {
     var jsonReview = review.toJson();
     var response = await http.put(
       Uri.parse("$baseUrl/Reviews/${review.id}"),
-      headers: {"content-type": "application/json"},
+      headers: authHeaders(),
       body: json.encode(jsonReview),
     );
+    checkUnauthorized(response);
     return response.statusCode;
   }
 }

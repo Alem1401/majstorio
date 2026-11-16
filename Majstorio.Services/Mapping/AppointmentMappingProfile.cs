@@ -1,4 +1,3 @@
-using Majstorio.Model.Requests.Appointment;
 using Majstorio.Model.Responses.Appointment;
 using Majstorio.Services.Database;
 using Mapster;
@@ -9,24 +8,7 @@ public class AppointmentMappingProfile : IRegister
 {
     public void Register(TypeAdapterConfig config)
     {
+        // Appointments are created and moved only by the offer and status actions, so there are no request mappings.
         config.NewConfig<Appointment, AppointmentResponse>();
-
-        config.NewConfig<AppointmentCreateRequest, Appointment>()
-            .Ignore(destination => destination.Id)
-            .Ignore(destination => destination.CreatedAtUtc)
-            .Ignore(destination => destination.Status)
-            .Ignore(destination => destination.Offer);
-
-        config.NewConfig<AppointmentUpdateRequest, Appointment>()
-            .Ignore(destination => destination.CreatedAtUtc)
-            .Ignore(destination => destination.Offer);
-
-        config.NewConfig<AppointmentDeleteRequest, Appointment>()
-            .Ignore(destination => destination.OfferId)
-            .Ignore(destination => destination.StartUtc)
-            .Ignore(destination => destination.EndUtc)
-            .Ignore(destination => destination.Status)
-            .Ignore(destination => destination.CreatedAtUtc)
-            .Ignore(destination => destination.Offer);
     }
 }

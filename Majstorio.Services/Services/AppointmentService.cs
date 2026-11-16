@@ -2,14 +2,18 @@ using Majstorio.Model.Requests.Appointment;
 using Majstorio.Model.Responses;
 using Majstorio.Model.Responses.Appointment;
 using Majstorio.Model.Results;
+using Majstorio.Services.Auth;
 using Majstorio.Services.Database;
 using Majstorio.Services.Enums;
 using Majstorio.Services.Extensions;
+using Majstorio.Services.RequestStateMachine;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
 
 namespace Majstorio.Services.Services;
 
+// Appointments are created when an offer is accepted (OfferService) and cancelled with their request
+// (ServiceRequestService); this service lists them and completes them.
 public class AppointmentService : IAppointmentService
 {
     private readonly MajstorioDbContext _ctx;
@@ -21,83 +25,59 @@ public class AppointmentService : IAppointmentService
         _mapper = mapper;
     }
 
-    public async Task<Result> CreateAppointmentAsync(AppointmentCreateRequest request)
+    public async Task<Result> CompleteAppointmentAsync(CurrentUser user, int id)
     {
-        var validation = await ValidateAppointmentAsync(
-            request.OfferId, request.StartUtc, request.EndUtc, AppointmentStatus.Pending);
-        if (!validation.IsSuccess)
-            return validation;
+        await using var transaction = await _ctx.Database.BeginTransactionAsync();
 
-        await _ctx.Appointments.AddAsync(_mapper.Map<Appointment>(request));
-        await _ctx.SaveChangesAsync();
-        return Result.Success();
-    }
-
-    public async Task<Result> UpdateAppointmentAsync(AppointmentUpdateRequest request)
-    {
-        var appointment = await _ctx.Appointments.FirstOrDefaultAsync(appointment => appointment.Id == request.Id);
-        if (appointment == null)
+        var serviceRequestId = await _ctx.Appointments.Where(appointment => appointment.Id == id)
+            .Select(appointment => (int?)appointment.Offer.ServiceRequestId).FirstOrDefaultAsync();
+        if (serviceRequestId == null)
             return Result.Failure(ErrorType.NotFound, "Appointment not found.");
 
-        var status = (AppointmentStatus)request.Status;
-        var validation = await ValidateAppointmentAsync(
-            request.OfferId, request.StartUtc, request.EndUtc, status, request.Id);
-        if (!validation.IsSuccess)
-            return validation;
+        // Locked first, so completing and cancelling the same job cannot overwrite each other.
+        await StatusTransitions.LockRequestAsync(_ctx, serviceRequestId.Value);
 
-        var scheduleChanged = appointment.OfferId != request.OfferId
-            || appointment.StartUtc != request.StartUtc || appointment.EndUtc != request.EndUtc;
+        var appointment = await _ctx.Appointments
+            .Include(appointment => appointment.Offer.ServiceRequest)
+            .Include(appointment => appointment.Offer.TradespersonProfile)
+            .FirstAsync(appointment => appointment.Id == id);
 
-        if (appointment.Status is AppointmentStatus.Cancelled or AppointmentStatus.Completed)
-        {
-            if (scheduleChanged || appointment.Status != status)
-                return Result.Failure(ErrorType.Conflict, "Cancelled or completed appointments cannot be changed.");
-        }
+        if (appointment.Offer.TradespersonProfile.UserId != user.Id)
+            return Result.Failure(ErrorType.Forbidden, "Only the assigned tradesperson can mark the job as completed.");
 
-        if (appointment.Status == AppointmentStatus.Confirmed && status == AppointmentStatus.Pending)
-            return Result.Failure(ErrorType.Conflict, "A confirmed appointment cannot return to pending.");
+        if (appointment.Status == AppointmentStatus.Confirmed && appointment.StartUtc > DateTime.UtcNow)
+            return Result.Failure(ErrorType.Conflict, "A job cannot be completed before its appointment starts.");
 
-        if (status == AppointmentStatus.Completed && appointment.Status != AppointmentStatus.Completed)
-        {
-            if (appointment.Status != AppointmentStatus.Confirmed || scheduleChanged)
-                return Result.Failure(ErrorType.Conflict, "Only a confirmed appointment can be completed without changing its schedule.");
+        var move = StatusTransitions.Move(_ctx, appointment.Offer.ServiceRequest, RequestStatus.Completed,
+            user.Id, DateTime.UtcNow, appointment, AppointmentStatus.Completed);
+        if (!move.IsSuccess)
+            return move;
 
-            if (request.EndUtc > DateTime.UtcNow)
-                return Result.Failure(ErrorType.Validation, "An appointment cannot be completed before its end.");
-        }
-
-        if (scheduleChanged && status is AppointmentStatus.Pending or AppointmentStatus.Confirmed
-            && request.StartUtc <= DateTime.UtcNow)
-            return Result.Failure(ErrorType.Validation, "Appointment start must be in the future when rescheduling.");
-
-        _mapper.Map(request, appointment);
         await _ctx.SaveChangesAsync();
+        await transaction.CommitAsync();
         return Result.Success();
     }
 
-    public async Task<Result> DeleteAppointmentAsync(AppointmentDeleteRequest request)
+    public Task<Result<PagedResponse<AppointmentResponse>>> GetAppointmentsAsync(AppointmentSearchRequest search)
+        => GetPageAsync(AppointmentsWithNames(), search);
+
+    public Task<Result<PagedResponse<AppointmentResponse>>> GetMyAppointmentsAsync(CurrentUser user, AppointmentSearchRequest search)
+        => GetPageAsync(AppointmentsWithNames().Where(appointment =>
+            appointment.Offer.TradespersonProfile.UserId == user.Id
+            || appointment.Offer.ServiceRequest.CustomerId == user.Id), search);
+
+    public async Task<Result<AppointmentResponse>> GetAppointmentByIdAsync(int id)
     {
-        var appointment = await _ctx.Appointments.FirstOrDefaultAsync(appointment => appointment.Id == request.Id);
+        var appointment = await AppointmentsWithNames().FirstOrDefaultAsync(appointment => appointment.Id == id);
         if (appointment == null)
-            return Result.Failure(ErrorType.NotFound, "Appointment not found.");
+            return Result<AppointmentResponse>.Failure(ErrorType.NotFound, "Appointment not found.");
 
-        // An appointment with payments, a review or a status history is part of the record of the job.
-        var isUsed = await _ctx.Payments.AnyAsync(payment => payment.AppointmentId == appointment.Id)
-            || await _ctx.Reviews.AnyAsync(review => review.AppointmentId == appointment.Id)
-            || await _ctx.StatusHistories.AnyAsync(history => history.AppointmentId == appointment.Id);
-        if (isUsed)
-            return Result.Failure(ErrorType.Conflict,
-                "This appointment has payments, a review or a status history, so it cannot be deleted. Cancel it instead.");
-
-        _ctx.Appointments.Remove(appointment);
-        await _ctx.SaveChangesAsync();
-        return Result.Success();
+        return Result<AppointmentResponse>.Success(ToResponse(appointment));
     }
 
-    public async Task<Result<PagedResponse<AppointmentResponse>>> GetAppointmentsAsync(AppointmentSearchRequest search)
+    private async Task<Result<PagedResponse<AppointmentResponse>>> GetPageAsync(
+        IQueryable<Appointment> query, AppointmentSearchRequest search)
     {
-        var query = AppointmentsWithNames();
-
         if (search.Status.HasValue)
         {
             var status = (AppointmentStatus)search.Status.Value;
@@ -110,15 +90,6 @@ public class AppointmentService : IAppointmentService
             .ToPagedAsync(search, appointments => appointments.Select(ToResponse).ToList());
 
         return Result<PagedResponse<AppointmentResponse>>.Success(page);
-    }
-
-    public async Task<Result<AppointmentResponse>> GetAppointmentByIdAsync(int id)
-    {
-        var appointment = await AppointmentsWithNames().FirstOrDefaultAsync(appointment => appointment.Id == id);
-        if (appointment == null)
-            return Result<AppointmentResponse>.Failure(ErrorType.NotFound, "Appointment not found.");
-
-        return Result<AppointmentResponse>.Success(ToResponse(appointment));
     }
 
     // Loads the people and the category with the appointments in one query, so lists can show names instead of ids.
@@ -135,33 +106,5 @@ public class AppointmentService : IAppointmentService
         response.TradespersonName = PersonNames.Full(offer?.TradespersonProfile?.User);
         response.ServiceCategoryName = offer?.ServiceRequest?.ServiceCategory?.Name ?? string.Empty;
         return response;
-    }
-
-    private async Task<Result> ValidateAppointmentAsync(
-        int offerId, DateTime startUtc, DateTime endUtc, AppointmentStatus status, int? appointmentId = null)
-    {
-        var offer = await _ctx.Offers
-            .Include(offer => offer.ServiceRequest)
-            .FirstOrDefaultAsync(offer => offer.Id == offerId);
-        if (offer == null)
-            return Result.Failure(ErrorType.NotFound, "Offer not found.");
-
-        if (offer.Status != OfferStatus.Accepted)
-            return Result.Failure(ErrorType.Conflict, "Only an accepted offer can have an appointment.");
-
-        if (await _ctx.Appointments.AnyAsync(appointment =>
-            appointment.OfferId == offerId && appointment.Id != appointmentId))
-            return Result.Failure(ErrorType.Conflict, "An appointment already exists for this offer.");
-
-        if (status is AppointmentStatus.Pending or AppointmentStatus.Confirmed
-            && await _ctx.Appointments.AnyAsync(appointment =>
-                appointment.Id != appointmentId
-                && (appointment.Status == AppointmentStatus.Pending || appointment.Status == AppointmentStatus.Confirmed)
-                && appointment.StartUtc < endUtc && appointment.EndUtc > startUtc
-                && (appointment.Offer.TradespersonProfileId == offer.TradespersonProfileId
-                    || appointment.Offer.ServiceRequest.CustomerId == offer.ServiceRequest.CustomerId)))
-            return Result.Failure(ErrorType.Conflict, "The customer or tradesperson already has an overlapping appointment.");
-
-        return Result.Success();
     }
 }

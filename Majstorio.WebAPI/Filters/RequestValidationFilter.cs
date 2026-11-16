@@ -31,6 +31,14 @@ public sealed class RequestValidationFilter : IAsyncActionFilter
                 continue;
             }
 
+            // The id in the URL is the one that counts, so it is copied into the body before validation.
+            // Without this a body that leaves the id out would fail the "Id must be greater than 0" rule.
+            if (context.RouteData.Values.TryGetValue("id", out var routeId)
+                && int.TryParse(routeId?.ToString(), out var id)
+                && parameter.ParameterType.GetProperty("Id") is { CanWrite: true } idProperty
+                && idProperty.PropertyType == typeof(int))
+                idProperty.SetValue(argument, id);
+
             var result = await validator.ValidateAsync(
                 new ValidationContext<object>(argument), context.HttpContext.RequestAborted);
 

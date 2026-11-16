@@ -7,7 +7,8 @@ import 'package:majstorio_desktop/models/dashboard/dashboard.dart';
 
 class DashboardProvider extends ChangeNotifier {
   Future<Dashboard> get() async {
-    var response = await http.get(Uri.parse("$baseUrl/Dashboard"));
+    var response = await http.get(Uri.parse("$baseUrl/Dashboard"), headers: authHeaders());
+    checkUnauthorized(response);
     if (response.statusCode != 200) {
       throw Exception("The dashboard could not be loaded.");
     }

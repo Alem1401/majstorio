@@ -3,9 +3,9 @@ import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/city/city.dart';
 import 'package:majstorio_desktop/providers/city/city_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
+import 'package:majstorio_desktop/widgets/dialogs.dart';
+import 'package:majstorio_desktop/utils/error_message.dart';
 import 'package:provider/provider.dart';
 
 class CityDetailsScreen extends StatefulWidget {
@@ -142,18 +142,25 @@ class _CityDetailsScreenState extends State<CityDetailsScreen> {
                               if(widget.toUpdate != null ){
                                 var updateDto = City(name: _cityName.text, isActive: isActive, id:  widget.toUpdate!.id);
                                var statusCode =  await _cityProvider.update(updateDto);
-                               if(statusCode== 200){
-                                Navigator.pop(context,true);
-
+                               if (!context.mounted) return;
+                               if (statusCode == 200) {
+                                 Navigator.pop(context, true);
+                               } else {
+                                 // For example: the name is already used.
+                                 showMessage(context, errorMessage("city", statusCode, conflict: "A city with this name already exists."));
                                }
-                               //else will be implemented later probably will show a dialog describing the error 
                                
                               }
                               else{
-                                var newCity = City(name: _cityName.text, isActive: isValid);
+                                var newCity = City(name: _cityName.text, isActive: isActive);
                                  var statusCode = await _cityProvider.post(newCity);
-                                 if(statusCode == 200){
-                                 Navigator.pop(context,true);}
+                                 if (!context.mounted) return;
+                                 if (statusCode == 200) {
+                                   Navigator.pop(context, true);
+                                 } else {
+                                   // For example: the name is already used.
+                                   showMessage(context, errorMessage("city", statusCode, conflict: "A city with this name already exists."));
+                                 }
                               }
                             }
                           },

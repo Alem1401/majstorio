@@ -1,4 +1,5 @@
 using Majstorio.Model.Requests.Review;
+using Majstorio.Services.Constants;
 using Majstorio.WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,9 +8,8 @@ namespace Majstorio.WebAPI.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-// TEMPORARY: open while the desktop app has no login screen yet.
-// Will be replaced with [Authorize] plus role and ownership checks.
-[AllowAnonymous]
+// Review moderation from the desktop app. Customer reviews from the mobile app will get their own actions with ownership checks.
+[Authorize(Roles = RoleNames.Administrator)]
 public class ReviewsController : ControllerBase
 {
     private readonly IReviewService _reviewService;

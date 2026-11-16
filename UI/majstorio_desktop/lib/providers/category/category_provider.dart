@@ -12,27 +12,31 @@ class CategoryProvider extends BaseProvider<Category>{
     var response =await http.post(
       Uri.parse("$baseUrl/ServiceCategories"),
       body: json.encode(Category.toJson(category)),
-      headers: {"content-type": "application/json"},
+      headers: authHeaders(),
     );
+    checkUnauthorized(response);
 
     return response.statusCode;
   }
 
   Future<Category> getById(int id) async {
-    var response = await http.get(Uri.parse("$baseUrl/ServiceCategories/$id"));
+    var response = await http.get(Uri.parse("$baseUrl/ServiceCategories/$id"), headers: authHeaders());
+    checkUnauthorized(response);
     var jsonCategory =  json.decode(response.body);
     var category = Category.fromJson(jsonCategory);
     return category;
   }
 
   Future<int> delete(Category category) async{
-    var response = await http.delete(Uri.parse("$baseUrl/ServiceCategories/${category.id}"));
+    var response = await http.delete(Uri.parse("$baseUrl/ServiceCategories/${category.id}"), headers: authHeaders());
+    checkUnauthorized(response);
     return response.statusCode;
   }
 
   Future<int> update(Category category) async {
     var jsonCategory = Category.toJson(category);
-    var response = await http.put(Uri.parse("$baseUrl/ServiceCategories/${category.id}"),headers: {"content-type" : "application/json"},body:json.encode(jsonCategory) );
+    var response = await http.put(Uri.parse("$baseUrl/ServiceCategories/${category.id}"),headers: authHeaders(),body:json.encode(jsonCategory) );
+    checkUnauthorized(response);
     return response.statusCode;
   }
 }

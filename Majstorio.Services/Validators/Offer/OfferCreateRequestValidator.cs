@@ -8,7 +8,6 @@ public class OfferCreateRequestValidator : AbstractValidator<OfferCreateRequest>
     public OfferCreateRequestValidator()
     {
         RuleFor(request => request.ServiceRequestId).GreaterThan(0);
-        RuleFor(request => request.TradespersonProfileId).GreaterThan(0);
         RuleFor(request => request.Price).GreaterThan(0).PrecisionScale(18, 2, true);
         RuleFor(request => request.ProposedStartUtc)
             .Cascade(CascadeMode.Stop)

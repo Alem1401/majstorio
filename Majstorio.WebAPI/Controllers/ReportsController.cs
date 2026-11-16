@@ -1,4 +1,5 @@
 using Majstorio.Model.Requests.Report;
+using Majstorio.Services.Constants;
 using Majstorio.WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,9 +8,8 @@ namespace Majstorio.WebAPI.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-// TEMPORARY: open while the desktop app has no login screen yet.
-// Will be replaced with [Authorize(Roles = RoleNames.Administrator)].
-[AllowAnonymous]
+// Reports are part of the desktop administration.
+[Authorize(Roles = RoleNames.Administrator)]
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;

@@ -4,6 +4,8 @@ import 'package:majstorio_desktop/models/user/user.dart';
 import 'package:majstorio_desktop/providers/user/user_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 
+import 'package:majstorio_desktop/widgets/dialogs.dart';
+import 'package:majstorio_desktop/utils/error_message.dart';
 import 'package:provider/provider.dart';
 
 class UserDetailsScreen extends StatefulWidget {
@@ -28,6 +30,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   void initState() {
     _userProvider = context.read<UserProvider>();
     isActive = widget.toUpdate.isActive;
+    userRole = widget.toUpdate.role ?? "Customer";
     _userName.text = widget.toUpdate.userName;
     _firstName.text = widget.toUpdate.firstName;
     _lastName.text = widget.toUpdate.lastName;
@@ -36,8 +39,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     super.initState();
   }
 
-  // TODO: User has no role field yet; the selection is not sent on update.
-  String userRole = "User";
+  // Customer or Administrator can be chosen here. Tradesperson is only shown: that role is
+  // given by approving the tradesperson profile, so the API refuses to set or remove it here.
+  String userRole = "Customer";
 
   var isActive = true;
   final key = GlobalKey<FormState>();
@@ -174,17 +178,23 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                           labelText: "Role",
                           prefixIcon: Icon(Icons.admin_panel_settings_outlined),
                         ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: "Administrator",
-                            child: Text("Administrator"),
-                          ),
-                          DropdownMenuItem(value: "User", child: Text("User")),
-                        ],
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setState(() => userRole = value);
-                        },
+                        // A tradesperson only sees their own role; everyone else chooses between the two
+                        // roles that can be set here. "Tradesperson" is never offered as a choice.
+                        items: widget.toUpdate.role == "Tradesperson"
+                            ? const [
+                                DropdownMenuItem(value: "Tradesperson", child: Text("Tradesperson")),
+                              ]
+                            : const [
+                                DropdownMenuItem(value: "Administrator", child: Text("Administrator")),
+                                DropdownMenuItem(value: "Customer", child: Text("Customer")),
+                              ],
+                        // Null turns the dropdown off for tradespeople.
+                        onChanged: widget.toUpdate.role == "Tradesperson"
+                            ? null
+                            : (value) {
+                                if (value == null) return;
+                                setState(() => userRole = value);
+                              },
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -220,12 +230,17 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                                 profileImageUrl:
                                     widget.toUpdate.profileImageUrl,
                                 isActive: isActive,
+                                role: userRole,
                               );
                               var statusCode = await _userProvider.update(
                                 updateDto,
                               );
+                              if (!context.mounted) return;
                               if (statusCode == 200) {
                                 Navigator.pop(context, true);
+                              } else {
+                                // For example: the name is already used.
+                                showMessage(context, errorMessage("user", statusCode, conflict: "A user with this user name or email already exists."));
                               }
                             }
                           },

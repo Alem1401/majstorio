@@ -8,7 +8,6 @@ public class NewsPostUpdateRequestValidator : AbstractValidator<NewsPostUpdateRe
 {
     public NewsPostUpdateRequestValidator()
     {
-        RuleFor(request => request.AuthorId).GreaterThan(0);
         RuleFor(request => request.Title)
             .NotEmpty().WithMessage("News post title is required.")
             .MaximumLength(ColumnLengths.ShortText)

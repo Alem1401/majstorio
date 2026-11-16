@@ -8,7 +8,12 @@ import 'package:majstorio_desktop/screens/offer/offers_screen.dart';
 import 'package:majstorio_desktop/screens/report/reports_screen.dart';
 import 'package:majstorio_desktop/screens/review/reviews_screen.dart';
 import 'package:majstorio_desktop/screens/user/users_screen.dart';
+import 'package:majstorio_desktop/screens/service_request/service_requests_screen.dart';
+import 'package:majstorio_desktop/screens/tradesperson_profile/tradesperson_profiles_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
+import 'package:majstorio_desktop/constants.dart';
+import 'package:majstorio_desktop/providers/auth/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 // The frame shared by every admin screen: top bar, menu and the content of the screen.
 class MasterScreen extends StatelessWidget {
@@ -43,6 +48,26 @@ class MasterScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => UsersScreen()),
+                );
+              },
+            ),
+            _DrawerButton(
+              icon: Icons.handyman_outlined,
+              label: "Tradespeople",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TradespersonProfilesScreen()),
+                );
+              },
+            ),
+            _DrawerButton(
+              icon: Icons.inbox_outlined,
+              label: "Requests",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ServiceRequestsScreen()),
                 );
               },
             ),
@@ -114,6 +139,19 @@ class MasterScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(builder: (context) => ReportsScreen()),
                 );
+              },
+            ),
+            const SizedBox(height: 12),
+            const Divider(color: Colors.white24, indent: 24, endIndent: 24),
+            const SizedBox(height: 12),
+            _DrawerButton(
+              icon: Icons.logout,
+              label: "Sign out",
+              onPressed: () async {
+                var navigator = Navigator.of(context);
+                await context.read<AuthProvider>().logout();
+                // Removes every open screen, so "back" cannot return to them.
+                navigator.pushNamedAndRemoveUntil(loginRoute, (route) => false);
               },
             ),
           ],

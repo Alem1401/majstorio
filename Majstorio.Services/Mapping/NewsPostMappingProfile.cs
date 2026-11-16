@@ -11,14 +11,17 @@ public class NewsPostMappingProfile : IRegister
     {
         config.NewConfig<NewsPost, NewsPostResponse>();
 
+        // AuthorId is set by the service from the token; an update leaves it as it is.
         config.NewConfig<NewsPostCreateRequest, NewsPost>()
             .Ignore(destination => destination.Id)
+            .Ignore(destination => destination.AuthorId)
             .Ignore(destination => destination.CreatedAtUtc)
             .Ignore(destination => destination.PublishedAtUtc)
             .Ignore(destination => destination.Author);
 
         config.NewConfig<NewsPostUpdateRequest, NewsPost>()
             .Ignore(destination => destination.Id)
+            .Ignore(destination => destination.AuthorId)
             .Ignore(destination => destination.CreatedAtUtc)
             .Ignore(destination => destination.PublishedAtUtc)
             .Ignore(destination => destination.Author);

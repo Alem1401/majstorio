@@ -11,35 +11,9 @@ public class OfferMappingProfile : IRegister
     {
         config.NewConfig<Offer, OfferResponse>();
 
-        config.NewConfig<OfferCreateRequest, Offer>()
-            .Ignore(destination => destination.Id)
-            .Ignore(destination => destination.CreatedAtUtc)
-            .Ignore(destination => destination.Status)
-            .Ignore(nameof(Offer.DecisionReason), nameof(Offer.DecidedByUserId), nameof(Offer.DecidedAtUtc))
-            .Ignore(destination => destination.ServiceRequest)
-            .Ignore(destination => destination.TradespersonProfile)
-            .Ignore(nameof(Offer.DecidedByUser));
-
+        // The tradesperson and the status are set by the service, never by the client.
+        config.NewConfig<OfferCreateRequest, Offer>();
         config.NewConfig<OfferUpdateRequest, Offer>()
-            .Ignore(destination => destination.Id)
-            .Ignore(destination => destination.CreatedAtUtc)
-            .Ignore(destination => destination.Status)
-            .Ignore(nameof(Offer.DecisionReason), nameof(Offer.DecidedByUserId), nameof(Offer.DecidedAtUtc))
-            .Ignore(destination => destination.ServiceRequest)
-            .Ignore(destination => destination.TradespersonProfile)
-            .Ignore(nameof(Offer.DecidedByUser));
-
-        config.NewConfig<OfferDeleteRequest, Offer>()
-            .Ignore(destination => destination.ServiceRequestId)
-            .Ignore(destination => destination.TradespersonProfileId)
-            .Ignore(destination => destination.Price)
-            .Ignore(destination => destination.ProposedStartUtc)
-            .Ignore(destination => destination.DurationMinutes)
-            .Ignore(destination => destination.Status)
-            .Ignore(nameof(Offer.DecisionReason), nameof(Offer.DecidedByUserId), nameof(Offer.DecidedAtUtc))
-            .Ignore(destination => destination.CreatedAtUtc)
-            .Ignore(destination => destination.ServiceRequest)
-            .Ignore(destination => destination.TradespersonProfile)
-            .Ignore(nameof(Offer.DecidedByUser));
+            .Ignore(destination => destination.Id);
     }
 }

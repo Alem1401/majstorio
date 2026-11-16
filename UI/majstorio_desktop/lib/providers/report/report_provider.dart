@@ -25,8 +25,8 @@ class ReportProvider extends ChangeNotifier {
     var response = await http.get(
       Uri.parse(
         "$baseUrl/$route",
-      ).replace(queryParameters: filter.toQueryParameters()),
-    );
+      ).replace(queryParameters: filter.toQueryParameters()), headers: authHeaders());
+    checkUnauthorized(response);
     if (response.statusCode != 200) {
       throw Exception("The report could not be loaded.");
     }

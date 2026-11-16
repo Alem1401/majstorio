@@ -7,7 +7,8 @@ class OfferProvider extends BaseProvider<Offer> {
   OfferProvider() : super("Offers", Offer.fromJson);
 
   Future<int> delete(Offer offer) async {
-    var response = await http.delete(Uri.parse("$baseUrl/Offers/${offer.id}"));
+    var response = await http.delete(Uri.parse("$baseUrl/Offers/${offer.id}"), headers: authHeaders());
+    checkUnauthorized(response);
     return response.statusCode;
   }
 }

@@ -4,6 +4,7 @@ import 'package:majstorio_desktop/models/review/review.dart';
 import 'package:majstorio_desktop/providers/review/review_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 import 'package:majstorio_desktop/widgets/dialogs.dart';
+import 'package:majstorio_desktop/utils/error_message.dart';
 import 'package:provider/provider.dart';
 
 class ReviewDetailsScreen extends StatefulWidget {
@@ -56,7 +57,7 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
       showMessage(context, "The review was updated.");
       Navigator.pop(context, true);
     } else {
-      showMessage(context, "The review could not be updated. Try again.");
+      showMessage(context, errorMessage("review", statusCode));
     }
   }
 

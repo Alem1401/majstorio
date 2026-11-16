@@ -1,5 +1,7 @@
 using Majstorio.Model.Requests.Appointment;
+using Majstorio.Services.Constants;
 using Majstorio.WebAPI.Services;
+using Majstorio.WebAPI.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,9 +9,7 @@ namespace Majstorio.WebAPI.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-// TEMPORARY: open while the desktop app has no login screen yet.
-// Will be replaced with [Authorize] plus role and ownership checks.
-[AllowAnonymous]
+[Authorize]
 public class AppointmentsController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
@@ -21,26 +21,24 @@ public class AppointmentsController : ControllerBase
         _resultMapper = resultMapper;
     }
 
+    // Administrative overview for the desktop app.
+    [Authorize(Roles = RoleNames.Administrator)]
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] AppointmentSearchRequest search)
         => _resultMapper.Map(await _appointmentService.GetAppointmentsAsync(search));
 
+    [Authorize(Roles = RoleNames.Administrator)]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
         => _resultMapper.Map(await _appointmentService.GetAppointmentByIdAsync(id));
 
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] AppointmentCreateRequest request)
-        => _resultMapper.Map(await _appointmentService.CreateAppointmentAsync(request));
+    // Appointments of the signed-in customer's requests, or of the jobs assigned to the signed-in tradesperson.
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetMine([FromQuery] AppointmentSearchRequest search)
+        => _resultMapper.Map(await _appointmentService.GetMyAppointmentsAsync(User.ToCurrentUser(), search));
 
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, [FromBody] AppointmentUpdateRequest request)
-    {
-        request.Id = id;
-        return _resultMapper.Map(await _appointmentService.UpdateAppointmentAsync(request));
-    }
-
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
-        => _resultMapper.Map(await _appointmentService.DeleteAppointmentAsync(new AppointmentDeleteRequest { Id = id }));
+    [Authorize(Roles = RoleNames.Tradesperson)]
+    [HttpPost("{id:int}/complete")]
+    public async Task<IActionResult> Complete(int id)
+        => _resultMapper.Map(await _appointmentService.CompleteAppointmentAsync(User.ToCurrentUser(), id));
 }

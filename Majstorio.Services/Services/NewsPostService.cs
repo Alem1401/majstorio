@@ -52,13 +52,15 @@ public class NewsPostService : INewsPostService
         return Result<NewsPostResponse>.Success(_mapper.Map<NewsPostResponse>(newsPost));
     }
 
-    public async Task<Result<NewsPostResponse>> CreateNewsPostAsync(NewsPostCreateRequest request)
+    public async Task<Result<NewsPostResponse>> CreateNewsPostAsync(int authorId, NewsPostCreateRequest request)
     {
-        var validation = await ValidateAuthorAsync(request.AuthorId);
+        var validation = await ValidateAuthorAsync(authorId);
         if (!validation.IsSuccess)
             return Result<NewsPostResponse>.Failure(validation.ErrorType!.Value, validation.Message!);
 
         var newsPost = _mapper.Map<NewsPost>(request);
+        // Never taken from the request body.
+        newsPost.AuthorId = authorId;
         NormalizeNewsPost(newsPost);
         _ctx.NewsPosts.Add(newsPost);
         await _ctx.SaveChangesAsync();
@@ -71,10 +73,7 @@ public class NewsPostService : INewsPostService
         if (newsPost == null)
             return Result.Failure(ErrorType.NotFound, NotFoundMessage);
 
-        var validation = await ValidateAuthorAsync(request.AuthorId);
-        if (!validation.IsSuccess)
-            return validation;
-
+        // The post keeps its original author.
         _mapper.Map(request, newsPost);
         NormalizeNewsPost(newsPost);
         await _ctx.SaveChangesAsync();
@@ -99,7 +98,7 @@ public class NewsPostService : INewsPostService
             return Result.Failure(ErrorType.NotFound, "Author not found.");
 
         if (!author.IsActive)
-            return Result.Failure(ErrorType.Forbidden, "An inactive author cannot publish or update news posts.");
+            return Result.Failure(ErrorType.Forbidden, "An inactive author cannot publish news posts.");
 
         return Result.Success();
     }

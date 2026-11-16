@@ -12,6 +12,8 @@ class User {
   final String lastName;
   final String? profileImageUrl;
   final bool isActive;
+  // Customer, Tradesperson or Administrator.
+  final String? role;
 
   User({
     this.id,
@@ -22,6 +24,7 @@ class User {
     required this.lastName,
     this.profileImageUrl,
     this.isActive = true,
+    this.role,
   });
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);

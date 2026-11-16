@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-
 class NewsPost {
   int? id;
-  final int authorId;
+  // Filled when the post comes from the API. It is never sent: the server takes the author from the token.
+  final int? authorId;
   final String title;
   final String content;
   final String imageUrl;
@@ -10,7 +9,7 @@ class NewsPost {
 
   NewsPost({
     this.id,
-    required this.authorId,
+    this.authorId,
     required this.title,
     required this.content,
     required this.imageUrl,
@@ -19,11 +18,9 @@ class NewsPost {
 
   Map<String, dynamic> toJson() {
     var json = {
-      "authorId": authorId,
       "title": title,
       "content": content,
       "imageUrl": imageUrl,
-      "publishedAtUtc": publishedAtUtc.toUtc().toIso8601String(),
     };
     return json;
   }

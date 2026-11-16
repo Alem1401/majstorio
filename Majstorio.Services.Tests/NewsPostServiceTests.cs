@@ -28,7 +28,7 @@ public class NewsPostServiceTests : IDisposable
     [Fact]
     public async Task Create_MissingAuthor_ReturnsNotFoundWithoutSaving()
     {
-        var result = await _service.CreateNewsPostAsync(CreateRequest(999));
+        var result = await _service.CreateNewsPostAsync(999, CreateRequest());
 
         Assert.Equal(ErrorType.NotFound, result.ErrorType);
         Assert.Empty(await _ctx.NewsPosts.ToListAsync());
@@ -39,7 +39,7 @@ public class NewsPostServiceTests : IDisposable
     {
         var author = await AddAuthorAsync(isActive: false);
 
-        var result = await _service.CreateNewsPostAsync(CreateRequest(author.Id));
+        var result = await _service.CreateNewsPostAsync(author.Id, CreateRequest());
 
         Assert.Equal(ErrorType.Forbidden, result.ErrorType);
         Assert.Empty(await _ctx.NewsPosts.ToListAsync());
@@ -54,10 +54,10 @@ public class NewsPostServiceTests : IDisposable
     [InlineData("Title", " \t\r\n")]
     public void BlankTitleOrContent_IsRejectedByValidators(string? title, string? content)
     {
-        var create = CreateRequest(1);
+        var create = CreateRequest();
         create.Title = title!;
         create.Content = content!;
-        var update = new NewsPostUpdateRequest { AuthorId = 1 };
+        var update = new NewsPostUpdateRequest();
         update.Title = title!;
         update.Content = content!;
 
@@ -73,9 +73,9 @@ public class NewsPostServiceTests : IDisposable
     [InlineData("data:image/png;base64,AAAA")]
     public void InvalidImageUrl_IsRejectedByValidators(string imageUrl)
     {
-        var create = CreateRequest(1);
+        var create = CreateRequest();
         create.ImageUrl = imageUrl;
-        var update = new NewsPostUpdateRequest { AuthorId = 1, Title = "Title", Content = "Content" };
+        var update = new NewsPostUpdateRequest { Title = "Title", Content = "Content" };
         update.ImageUrl = imageUrl;
 
         Assert.False(new NewsPostCreateRequestValidator().Validate(create).IsValid);
@@ -91,11 +91,11 @@ public class NewsPostServiceTests : IDisposable
     public async Task Create_OptionalOrHttpImageUrl_IsAcceptedAndNormalized(string? imageUrl)
     {
         var author = await AddAuthorAsync();
-        var request = CreateRequest(author.Id);
+        var request = CreateRequest();
         request.ImageUrl = imageUrl!;
 
         Assert.True(new NewsPostCreateRequestValidator().Validate(request).IsValid);
-        Assert.True((await _service.CreateNewsPostAsync(request)).IsSuccess);
+        Assert.True((await _service.CreateNewsPostAsync(author.Id, request)).IsSuccess);
         var stored = await _ctx.NewsPosts.SingleAsync();
         Assert.Equal(imageUrl?.Trim() ?? "", stored.ImageUrl);
 
@@ -111,12 +111,12 @@ public class NewsPostServiceTests : IDisposable
     public async Task Crud_NormalizesTextMapsResponsesAndPreservesTimestamps()
     {
         var author = await AddAuthorAsync();
-        var request = CreateRequest(author.Id);
+        var request = CreateRequest();
         request.Title = "  New title  ";
         request.Content = "  First paragraph\n\nSecond paragraph  ";
         var beforeCreate = DateTime.UtcNow;
 
-        Assert.True((await _service.CreateNewsPostAsync(request)).IsSuccess);
+        Assert.True((await _service.CreateNewsPostAsync(author.Id, request)).IsSuccess);
         var post = await _ctx.NewsPosts.SingleAsync();
         var createdAt = post.CreatedAtUtc;
         var publishedAt = post.PublishedAtUtc;
@@ -148,43 +148,26 @@ public class NewsPostServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Update_MissingAuthor_ReturnsNotFoundWithoutChangingPost()
+    public async Task Update_KeepsTheOriginalAuthor()
     {
-        var post = await AddPostAsync(await AddAuthorAsync());
-        var request = UpdateRequest(post);
-        request.AuthorId = 999;
-        request.Title = "Changed title";
-
-        Assert.Equal(ErrorType.NotFound, (await _service.UpdateNewsPostAsync(post.Id, request)).ErrorType);
-        _ctx.ChangeTracker.Clear();
-        var stored = await _ctx.NewsPosts.SingleAsync();
-        Assert.Equal(post.AuthorId, stored.AuthorId);
-        Assert.Equal("Original title", stored.Title);
-    }
-
-    [Fact]
-    public async Task Update_InactiveAuthor_ReturnsForbiddenWithoutChangingPost()
-    {
-        var post = await AddPostAsync(await AddAuthorAsync(isActive: false));
+        var author = await AddAuthorAsync();
+        var post = await AddPostAsync(author);
         var request = UpdateRequest(post);
         request.Title = "Changed title";
-
-        Assert.Equal(ErrorType.Forbidden, (await _service.UpdateNewsPostAsync(post.Id, request)).ErrorType);
-        _ctx.ChangeTracker.Clear();
-        Assert.Equal("Original title", (await _ctx.NewsPosts.SingleAsync()).Title);
-    }
-
-    [Fact]
-    public async Task Update_CanAssignAnotherExistingActiveAuthor()
-    {
-        var post = await AddPostAsync(await AddAuthorAsync());
-        var newAuthor = await AddAuthorAsync();
-        var request = UpdateRequest(post);
-        request.AuthorId = newAuthor.Id;
 
         Assert.True((await _service.UpdateNewsPostAsync(post.Id, request)).IsSuccess);
         _ctx.ChangeTracker.Clear();
-        Assert.Equal(newAuthor.Id, (await _ctx.NewsPosts.SingleAsync()).AuthorId);
+        var stored = await _ctx.NewsPosts.SingleAsync();
+        Assert.Equal(author.Id, stored.AuthorId);
+        Assert.Equal("Changed title", stored.Title);
+    }
+
+    [Fact]
+    public void Requests_HaveNoAuthorField()
+    {
+        // Nothing the client sends can choose the author; it always comes from the token.
+        Assert.Null(typeof(NewsPostCreateRequest).GetProperty("AuthorId"));
+        Assert.Null(typeof(NewsPostUpdateRequest).GetProperty("AuthorId"));
     }
 
     [Fact]
@@ -234,10 +217,11 @@ public class NewsPostServiceTests : IDisposable
     {
         var author = await AddAuthorAsync();
 
-        var result = await _service.CreateNewsPostAsync(CreateRequest(author.Id));
+        var result = await _service.CreateNewsPostAsync(author.Id, CreateRequest());
 
         Assert.True(result.IsSuccess);
         Assert.True(result.Value!.Id > 0);
+        Assert.Equal(author.Id, result.Value.AuthorId);
         Assert.Equal("New title", result.Value.Title);
     }
 
@@ -254,22 +238,17 @@ public class NewsPostServiceTests : IDisposable
     [Fact]
     public void Validators_RejectInvalidIds()
     {
-        Assert.Contains(new NewsPostCreateRequestValidator().Validate(CreateRequest(0)).Errors,
-            error => error.PropertyName == nameof(NewsPostCreateRequest.AuthorId));
-        var update = new NewsPostUpdateRequest { Title = "Title", Content = "Content" };
-        var errors = new NewsPostUpdateRequestValidator().Validate(update).Errors;
-        Assert.Contains(errors, error => error.PropertyName == nameof(update.AuthorId));
         Assert.False(new NewsPostDeleteRequestValidator().Validate(new NewsPostDeleteRequest()).IsValid);
     }
 
-    private static NewsPostCreateRequest CreateRequest(int authorId) => new()
+    private static NewsPostCreateRequest CreateRequest() => new()
     {
-        AuthorId = authorId, Title = "New title", Content = "New content"
+        Title = "New title", Content = "New content"
     };
 
     private static NewsPostUpdateRequest UpdateRequest(NewsPost post) => new()
     {
-        AuthorId = post.AuthorId, Title = post.Title,
+        Title = post.Title,
         Content = post.Content, ImageUrl = post.ImageUrl
     };
 

@@ -4,6 +4,8 @@ import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/news_post/news_post.dart';
 import 'package:majstorio_desktop/providers/news_post/news_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
+import 'package:majstorio_desktop/widgets/dialogs.dart';
+import 'package:majstorio_desktop/utils/error_message.dart';
 import 'package:provider/provider.dart';
 
 class NewsPostDetailsScreen extends StatefulWidget {
@@ -51,7 +53,6 @@ class _NewsPostDetailsScreenState extends State<NewsPostDetailsScreen> {
 
     var newsPost = NewsPost(
       id: widget.post?.id,
-      authorId: 1, // hardcoded for now
       title: _headlineController.text,
       content: _contentController.text,
       imageUrl: _imageController.text,
@@ -66,6 +67,8 @@ class _NewsPostDetailsScreenState extends State<NewsPostDetailsScreen> {
     if (!mounted) return;
     if (response == 200) {
       Navigator.pop(context, true);
+    } else {
+      showMessage(context, errorMessage("news post", response));
     }
   }
 

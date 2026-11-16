@@ -4,6 +4,8 @@ import 'package:majstorio_desktop/models/category/category.dart';
 import 'package:majstorio_desktop/providers/category/category_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 
+import 'package:majstorio_desktop/widgets/dialogs.dart';
+import 'package:majstorio_desktop/utils/error_message.dart';
 import 'package:provider/provider.dart';
 
 class CategoryDetailsScreen extends StatefulWidget {
@@ -137,14 +139,22 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                                   id: widget.toUpdate!.id,
                                 );
                                 var statusCode = await _categoryProvider.update(updateDto);
+                                if (!context.mounted) return;
                                 if (statusCode == 200) {
                                   Navigator.pop(context, true);
+                                } else {
+                                  // For example: the name is already used.
+                                  showMessage(context, errorMessage("category", statusCode, conflict: "A category with this name already exists."));
                                 }
                               } else {
                                 var newCategory = Category(name: _categoryName.text, isActive: isActive);
                                 var statusCode = await _categoryProvider.post(newCategory);
+                                if (!context.mounted) return;
                                 if (statusCode == 200) {
                                   Navigator.pop(context, true);
+                                } else {
+                                  // For example: the name is already used.
+                                  showMessage(context, errorMessage("category", statusCode, conflict: "A category with this name already exists."));
                                 }
                               }
                             }

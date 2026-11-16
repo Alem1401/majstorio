@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -13,27 +12,31 @@ class CityProvider extends BaseProvider<City>{
     var response =await http.post(
       Uri.parse("$baseUrl/Cities"),
       body: json.encode(City.toJson(city)),
-      headers: {"content-type": "application/json"},
+      headers: authHeaders(),
     );
+    checkUnauthorized(response);
 
     return response.statusCode;
   }
 
   Future<City> getById(int id) async {
-    var response = await http.get(Uri.parse("$baseUrl/Cities$id"));
+    var response = await http.get(Uri.parse("$baseUrl/Cities/$id"), headers: authHeaders());
+    checkUnauthorized(response);
     var jsonCity =  json.decode(response.body);
     var city = City.fromJson(jsonCity);
     return city;
   }
 
   Future<int> delete(City city) async{
-    var response = await http.delete(Uri.parse("$baseUrl/Cities/${city.id}"));
+    var response = await http.delete(Uri.parse("$baseUrl/Cities/${city.id}"), headers: authHeaders());
+    checkUnauthorized(response);
     return response.statusCode;
   }
 
   Future<int> update(City city) async {
     var jsonCity = City.toJson(city);
-    var response = await http.put(Uri.parse("$baseUrl/Cities/${city.id}"),headers: {"content-type" : "application/json"},body:json.encode(jsonCity) );
+    var response = await http.put(Uri.parse("$baseUrl/Cities/${city.id}"),headers: authHeaders(),body:json.encode(jsonCity) );
+    checkUnauthorized(response);
     return response.statusCode;
   }
 

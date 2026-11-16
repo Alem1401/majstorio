@@ -9,7 +9,8 @@ public interface INewsPostService
 
     Task<Result<NewsPostResponse>> GetNewsPostByIdAsync(int id);
 
-    Task<Result<NewsPostResponse>> CreateNewsPostAsync(NewsPostCreateRequest request);
+    // The author is the signed-in user, read from the token by the controller.
+    Task<Result<NewsPostResponse>> CreateNewsPostAsync(int authorId, NewsPostCreateRequest request);
 
     Task<Result> UpdateNewsPostAsync(int id, NewsPostUpdateRequest request);
 
