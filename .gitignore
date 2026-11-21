@@ -50,6 +50,7 @@ fit-build-*.zip
 *.mdf
 *.ldf
 *.bak
+*.md
 
 # Local IDE and operating-system files
 .idea/
