@@ -44,6 +44,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<RequestValidationFilter>();
 });
 builder.Services.AddSingleton<ResultToStatusCodeMapper>();
+builder.Services.AddSingleton<ProfileImageStore>();
 
 builder.Services.AddDbContext<MajstorioDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

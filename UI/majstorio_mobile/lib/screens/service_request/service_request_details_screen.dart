@@ -3,12 +3,15 @@ import 'package:majstorio_mobile/layouts/master_screen.dart';
 import 'package:majstorio_mobile/models/appointment/appointment.dart';
 import 'package:majstorio_mobile/models/auth/auth_session.dart';
 import 'package:majstorio_mobile/models/offer/offer.dart';
+import 'package:majstorio_mobile/models/review/review.dart';
 import 'package:majstorio_mobile/models/service_request/service_request.dart';
 import 'package:majstorio_mobile/providers/appointment/appointment_provider.dart';
 import 'package:majstorio_mobile/providers/offer/offer_provider.dart';
+import 'package:majstorio_mobile/providers/review/review_provider.dart';
 import 'package:majstorio_mobile/providers/service_request/service_request_provider.dart';
 import 'package:majstorio_mobile/screens/offer/offer_details_screen.dart';
 import 'package:majstorio_mobile/screens/offer/offers_compare_screen.dart';
+import 'package:majstorio_mobile/screens/review/review_form_screen.dart';
 import 'package:majstorio_mobile/screens/service_request/service_request_form_screen.dart';
 import 'package:majstorio_mobile/theme/app_theme.dart';
 import 'package:majstorio_mobile/utils/error_message.dart';
@@ -34,8 +37,13 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
   late ServiceRequestProvider _serviceRequestProvider;
   late OfferProvider _offerProvider;
   late AppointmentProvider _appointmentProvider;
+  late ReviewProvider _reviewProvider;
 
   ServiceRequestDetail? detail;
+  // The customer's rating of the completed job; loaded only for the owner of a completed job.
+  Review? review;
+  var isReviewLoaded = false;
+  String? reviewError;
   String? error;
   // True while an action is running, so no second action can start.
   var isBusy = false;
@@ -46,6 +54,7 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
     _serviceRequestProvider = context.read<ServiceRequestProvider>();
     _offerProvider = context.read<OfferProvider>();
     _appointmentProvider = context.read<AppointmentProvider>();
+    _reviewProvider = context.read<ReviewProvider>();
     _serviceRequestProvider.addListener(loadDetail);
     _offerProvider.addListener(loadDetail);
     _appointmentProvider.addListener(loadDetail);
@@ -72,6 +81,7 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
       setState(() {
         detail = result;
       });
+      if (canBeRated(result)) loadReview(result.appointment!.id);
     } catch (e) {
       if (!mounted || loadNumber != _loadNumber) return;
       setState(() {
@@ -80,6 +90,37 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
         if (e is ApiException && e.statusCode == 404) detail = null;
       });
     }
+  }
+
+  // A customer rates a job once it is completed. The API checks ownership and status again.
+  bool canBeRated(ServiceRequestDetail detail) =>
+      isCustomerOwner(detail.request) && detail.appointment?.status == Appointment.completed;
+
+  Future<void> loadReview(int appointmentId) async {
+    setState(() {
+      reviewError = null;
+    });
+    try {
+      var result = await _reviewProvider.getForAppointment(appointmentId);
+      if (!mounted) return;
+      setState(() {
+        review = result;
+        isReviewLoaded = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        reviewError = exceptionText(e);
+      });
+    }
+  }
+
+  void openReviewForm(Appointment appointment) async {
+    var saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => ReviewFormScreen(appointment: appointment)),
+    );
+    if (saved == true) loadReview(appointment.id);
   }
 
   // Runs an action, shows its result, and reloads the request. A refused action (for example 409,
@@ -310,6 +351,52 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
     );
   }
 
+  Widget buildReview(ServiceRequestDetail detail) {
+    var appointment = detail.appointment!;
+    if (reviewError != null) {
+      return ErrorView(message: reviewError!, onRetry: () => loadReview(appointment.id));
+    }
+    if (!isReviewLoaded) return const LoadingView();
+    var existing = review;
+    if (existing == null) {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: isBusy ? null : () => openReviewForm(appointment),
+          icon: const Icon(Icons.star_outline),
+          label: const Text("Ocijeni majstora"),
+        ),
+      );
+    }
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                for (var star = 1; star <= 5; star++)
+                  Icon(star <= existing.rating ? Icons.star : Icons.star_border, color: AppTheme.gold),
+                const SizedBox(width: 8),
+                Text("${existing.rating}/5", style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.ink)),
+              ],
+            ),
+            if (existing.comment != null && existing.comment!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(existing.comment!),
+            ],
+            const SizedBox(height: 6),
+            Text(
+              "Ocijenjeno ${formatDate(existing.createdAtUtc)}",
+              style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildHistory(List<StatusHistoryEntry> history) {
     if (history.isEmpty) {
       return const Text("Nema zapisa.", style: TextStyle(color: AppTheme.textMuted));
@@ -474,6 +561,10 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
         if (detail.appointment != null) ...[
           const SectionTitle("Termin"),
           buildAppointment(detail),
+        ],
+        if (canBeRated(detail)) ...[
+          const SectionTitle("Vaša ocjena"),
+          buildReview(detail),
         ],
         SectionTitle(offersTitle),
         if (detail.offers.isEmpty)

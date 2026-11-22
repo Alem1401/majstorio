@@ -9,5 +9,7 @@ RUN dotnet publish Majstorio.WebAPI/Majstorio.WebAPI.csproj --configuration Rele
 FROM ${DOTNET_RUNTIME_IMAGE} AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+# Profile photos are written here; the folder belongs to the user the API runs as.
+RUN mkdir -p /app/uploads/profile-images && chown -R $APP_UID /app/uploads
 USER $APP_UID
 ENTRYPOINT ["dotnet", "Majstorio.WebAPI.dll"]

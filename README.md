@@ -9,7 +9,7 @@ The application is under development.
 - The database schema is defined through EF Core configurations and created by migrations. The API applies pending migrations and the seed data on startup.
 - The API covers the core flow: registration and login, service requests, offers, accepting an offer with appointment confirmation, completing and cancelling, and the status history. It also has the administrative data: cities, service categories, users, tradesperson profiles, news posts, reviews, the dashboard and the two reports.
 - Not implemented yet: RabbitMQ publishing and the worker consumer, notifications and SignalR, PayPal payment and refund, the recommender, and e-mail delivery of the password reset token.
-- The Flutter desktop app is in `UI/majstorio_desktop`; the mobile app is planned under `UI/majstorio_mobile`.
+- The Flutter desktop app is in `UI/majstorio_desktop` (administrators). The Flutter Android app is in `UI/majstorio_mobile` (customers and tradespeople), including ratings and profile editing with a photo.
 
 ## Technologies
 
@@ -105,6 +105,7 @@ All of them are listed with example values in `.env.example`.
 | `MSSQL_SA_PASSWORD`, `DATABASE_*`, `ACCEPT_EULA`, `MSSQL_PID` | Compose | SQL Server container settings; also used to build the connection string. |
 | `RabbitMq__*` | Compose, worker | Broker host, port, user, password, virtual host, exchange and queue. The messaging code is not written yet. |
 | `*_IMAGE`, `HOST_BIND_ADDRESS`, `*_HOST_PORT`, `API_CONTAINER_PORT` | Compose | Pinned image tags and published ports. |
+| `ProfileImages__Path` | API (optional) | Folder for uploaded profile photos. Defaults to `uploads/profile-images` next to the API; in Docker it is the `profile-images` volume. |
 | `PayPal__*` | API (planned) | PayPal sandbox settings; payments are not implemented yet. |
 | `MAJSTORIO_TEST_SQLSERVER` | Tests (optional) | SQL Server for the concurrency tests instead of LocalDB. |
 
@@ -193,6 +194,20 @@ All require a token.
 | `POST` | `/TradespersonProfiles/{id}/approve` | Administrator | Approves the profile and gives its user the Tradesperson role. |
 | `PUT` | `/TradespersonProfiles/{id}/active` | Administrator | Body `{ isActive }`. An inactive profile is hidden and cannot send offers. |
 
+### Own account and ratings (mobile)
+
+All require a token. Who the user is always comes from the token.
+
+| Method | Route | Who | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/Account` | signed in | The user's own details and photo address. |
+| `PUT` | `/Account` | signed in | Body `{ email, phoneNumber?, firstName, lastName }`. The user name and role cannot be changed here. |
+| `POST` | `/Account/photo` | signed in | `multipart/form-data` with one `file`: a JPEG or PNG of at most 2 MB, recognised by its content. Replaces the previous photo. |
+| `DELETE` | `/Account/photo` | signed in | Removes the photo. |
+| `GET` | `/Account/photos/{fileName}` | signed in | The photo file. Not available without a token. |
+| `GET` | `/Reviews/mine?appointmentId=&rating=` | Customer | The customer's own ratings. |
+| `POST` | `/Reviews/mine` | Customer | Body `{ appointmentId, rating (1-5), comment? }`. Only for a completed job on the customer's own request, once per job. |
+
 ### Administrative data (desktop)
 
 `/Cities`, `/ServiceCategories`, `/NewsPost`, `/Users` and `/Reviews` each have a paged list, get by id, update and delete (`/Users` has no create; accounts are registered). `/Dashboard` returns the numbers of the home screen, and `/Reports/requests` and `/Reports/tradespeople` return the data of the two PDF reports.
@@ -207,6 +222,26 @@ flutter run -d windows --dart-define=API_BASE_URL=http://localhost:5000
 ```
 
 `API_BASE_URL` defaults to `http://localhost:5000`, the address the API uses when started from Visual Studio. Pass `http://localhost:5100` when the API runs with `dotnet run` (which follows `ASPNETCORE_URLS` in `.env`) or in Docker. The app starts on a login screen and accepts only administrator accounts (`desktop` / `test`). The token is kept in memory, sent with every request, and dropped on "Sign out" or when the API answers 401.
+
+## Mobile app
+
+```powershell
+cd UI/majstorio_mobile
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5100
+```
+
+`10.0.2.2` is how the Android emulator reaches the computer it runs on, so the API must be running on port 5100 (`dotnet run` or Docker). Sign in with `mobile` / `test` (customer) or `tradesperson` / `test` (tradesperson); an administrator is directed to the desktop app.
+
+Release build for the emulator:
+
+```powershell
+cd UI/majstorio_mobile
+flutter clean
+flutter pub get
+flutter build apk --release --dart-define=API_BASE_URL=http://10.0.2.2:5100
+adb install -r build/app/outputs/flutter-apk/app-release.apk
+```
 
 ## How a status changes
 

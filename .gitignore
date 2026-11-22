@@ -57,3 +57,6 @@ fit-build-*.zip
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Profile photos uploaded to a locally running API
+Majstorio.WebAPI/uploads/

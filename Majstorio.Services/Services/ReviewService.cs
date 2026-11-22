@@ -2,6 +2,7 @@ using Majstorio.Model.Requests.Review;
 using Majstorio.Model.Responses;
 using Majstorio.Model.Responses.Review;
 using Majstorio.Model.Results;
+using Majstorio.Services.Auth;
 using Majstorio.Services.Database;
 using Majstorio.Services.Enums;
 using Majstorio.Services.Extensions;
@@ -40,9 +41,19 @@ public class ReviewService : IReviewService
         // The reviewed tradesperson and the reviewing customer come from the job, never from the client.
         review.TradespersonProfileId = appointment.Offer.TradespersonProfileId;
         review.CustomerId = appointment.Offer.ServiceRequest.CustomerId;
+        // A comment of only spaces is no comment.
+        review.Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim();
 
         await _ctx.Reviews.AddAsync(review);
-        await _ctx.SaveChangesAsync();
+        try
+        {
+            await _ctx.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            // The same job was rated by a second request that passed the check above at the same moment.
+            return Result.Failure(ErrorType.Conflict, "A review already exists for this appointment.");
+        }
         return Result.Success();
     }
 
@@ -78,12 +89,44 @@ public class ReviewService : IReviewService
         if (search.Rating.HasValue)
             query = query.Where(review => review.Rating == search.Rating.Value);
 
+        if (search.AppointmentId.HasValue)
+            query = query.Where(review => review.AppointmentId == search.AppointmentId.Value);
+
         var page = await query
             .OrderByDescending(review => review.CreatedAtUtc)
             .ThenByDescending(review => review.Id)
             .ToPagedAsync(search, reviews => reviews.Select(ToResponse).ToList());
 
         return Result<PagedResponse<ReviewResponse>>.Success(page);
+    }
+
+    public async Task<Result<PagedResponse<ReviewResponse>>> GetMyReviewsAsync(CurrentUser user, ReviewSearchRequest search)
+    {
+        var query = ReviewsWithNames().Where(review => review.CustomerId == user.Id);
+
+        if (search.Rating.HasValue)
+            query = query.Where(review => review.Rating == search.Rating.Value);
+
+        if (search.AppointmentId.HasValue)
+            query = query.Where(review => review.AppointmentId == search.AppointmentId.Value);
+
+        var page = await query
+            .OrderByDescending(review => review.CreatedAtUtc)
+            .ThenByDescending(review => review.Id)
+            .ToPagedAsync(search, reviews => reviews.Select(ToResponse).ToList());
+
+        return Result<PagedResponse<ReviewResponse>>.Success(page);
+    }
+
+    public async Task<Result> CreateMyReviewAsync(CurrentUser user, ReviewCreateRequest request)
+    {
+        // Another customer's appointment is reported as missing, so its existence is not revealed.
+        var isOwnAppointment = await _ctx.Appointments.AnyAsync(appointment =>
+            appointment.Id == request.AppointmentId && appointment.Offer.ServiceRequest.CustomerId == user.Id);
+        if (!isOwnAppointment)
+            return Result.Failure(ErrorType.NotFound, "Appointment not found.");
+
+        return await CreateReviewAsync(request);
     }
 
     public async Task<Result<ReviewResponse>> GetReviewByIdAsync(int id)

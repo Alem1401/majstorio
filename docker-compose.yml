@@ -16,6 +16,9 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    volumes:
+      # Uploaded profile photos survive a rebuild of the api container.
+      - profile-images:/app/uploads/profile-images
 
   worker:
     image: ${WORKER_IMAGE:?Set WORKER_IMAGE in .env}
@@ -73,5 +76,6 @@ services:
       start_period: 30s
 
 volumes:
+  profile-images:
   rabbitmq-data:
   sqlserver-data:

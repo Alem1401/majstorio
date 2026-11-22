@@ -64,6 +64,7 @@ String statusMessage(int statusCode) {
   if (statusCode == 403) return "Nemate dozvolu za ovu radnju.";
   if (statusCode == 404) return "Zapis nije dostupan.";
   if (statusCode == 409) return "Podaci su se u međuvremenu promijenili. Osvježite i pokušajte ponovo.";
+  if (statusCode == 413) return "Datoteka je prevelika.";
   return "Došlo je do greške na serveru. Pokušajte ponovo.";
 }
 

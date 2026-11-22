@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:majstorio_mobile/constants.dart';
 import 'package:majstorio_mobile/theme/app_theme.dart';
 
 // Small building blocks used by many screens.
@@ -123,7 +124,7 @@ class FormHeader extends StatelessWidget {
   }
 }
 
-// A picture from the API. Shows an icon when there is no URL or the picture cannot be loaded.
+// A picture from the API or the web. Shows an icon when there is no URL or the picture cannot be loaded.
 class NetworkPicture extends StatelessWidget {
   const NetworkPicture({
     super.key,
@@ -152,17 +153,21 @@ class NetworkPicture extends StatelessWidget {
       child: Icon(icon, color: AppTheme.ink),
     );
     var link = url;
+    if (link == null || link.isEmpty) {
+      return ClipRRect(borderRadius: BorderRadius.circular(12), child: fallback);
+    }
+    // A photo uploaded to the API has a relative address ("Account/photos/...") and needs the token.
+    var isApiPhoto = !link.startsWith("http://") && !link.startsWith("https://");
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: link == null || link.isEmpty
-          ? fallback
-          : Image.network(
-              link,
-              width: w,
-              height: h,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => fallback,
-            ),
+      child: Image.network(
+        isApiPhoto ? "$baseUrl/$link" : link,
+        headers: isApiPhoto ? ({...authHeaders()}..remove("content-type")) : null,
+        width: w,
+        height: h,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => fallback,
+      ),
     );
   }
 }

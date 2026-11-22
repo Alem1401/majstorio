@@ -27,11 +27,15 @@ String? email(String? value) {
   return null;
 }
 
-// Optional phone number: digits, spaces, "+", "-", "/" and brackets, 6 to 20 characters.
+// Optional phone number, the same rule as the API: an optional leading "+", then only digits, spaces, "/" and "-",
+// with 6 to 20 digits (separators are not counted) and at most 32 characters in total.
 String? phone(String? value) {
   var text = (value ?? "").trim();
   if (text.isEmpty) return null;
-  if (!RegExp(r"^\+?[0-9 ()/-]{6,20}$").hasMatch(text)) return "Broj telefona nije ispravan";
+  var digits = RegExp(r"[0-9]").allMatches(text).length;
+  if (text.length > 32 || !RegExp(r"^\+?[0-9 /-]+$").hasMatch(text) || digits < 6 || digits > 20) {
+    return "Unesite 6 do 20 cifara (dozvoljeni su razmak, / i -), npr. +387 61 123 456";
+  }
   return null;
 }
 

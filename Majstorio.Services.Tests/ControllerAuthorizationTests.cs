@@ -14,6 +14,8 @@ public class ControllerAuthorizationTests
     [InlineData(typeof(TradespersonProfilesController))]
     [InlineData(typeof(OffersController))]
     [InlineData(typeof(AppointmentsController))]
+    [InlineData(typeof(AccountController))]
+    [InlineData(typeof(MyReviewsController))]
     public void FlowControllers_RequireAToken(Type controller)
     {
         Assert.NotNull(controller.GetCustomAttribute<AuthorizeAttribute>());
@@ -103,5 +105,13 @@ public class ControllerAuthorizationTests
     public void RoleRestrictedActions_NameTheirRole(Type controller, string action, string role)
     {
         Assert.Equal(role, controller.GetMethod(action)!.GetCustomAttribute<AuthorizeAttribute>()!.Roles);
+    }
+
+    // Only customers rate jobs; the account endpoints are for every signed-in user, whatever the role.
+    [Fact]
+    public void CustomerReviews_AreForCustomers_AndTheAccountIsForAnySignedInUser()
+    {
+        Assert.Equal(RoleNames.Customer, typeof(MyReviewsController).GetCustomAttribute<AuthorizeAttribute>()!.Roles);
+        Assert.Null(typeof(AccountController).GetCustomAttribute<AuthorizeAttribute>()!.Roles);
     }
 }

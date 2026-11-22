@@ -110,6 +110,46 @@ public class UserService : IUserService
         return Result.Success();
     }
 
+    public async Task<Result> UpdateMyProfileAsync(int userId, MyProfileUpdateRequest request)
+    {
+        var user = await _ctx.ApplicationUsers.FirstOrDefaultAsync(user => user.Id == userId);
+        if (user == null)
+            return Result.Failure(ErrorType.NotFound, NotFoundMessage);
+
+        var email = request.Email.Trim();
+        // E-mail addresses are compared without regard to letter case, the same way SQL Server compares them.
+        var lowerEmail = email.ToLower();
+        if (await _ctx.ApplicationUsers.AnyAsync(other => other.Email.ToLower() == lowerEmail && other.Id != userId))
+            return Result.Failure(ErrorType.Conflict, EmailTakenMessage);
+
+        user.Email = email;
+        user.PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
+        user.FirstName = request.FirstName.Trim();
+        user.LastName = request.LastName.Trim();
+        try
+        {
+            await _ctx.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            // Another account took the same e-mail between the check above and this save.
+            return Result.Failure(ErrorType.Conflict, EmailTakenMessage);
+        }
+        return Result.Success();
+    }
+
+    public async Task<Result<string?>> SetProfileImageAsync(int userId, string? profileImageUrl)
+    {
+        var user = await _ctx.ApplicationUsers.FirstOrDefaultAsync(user => user.Id == userId);
+        if (user == null)
+            return Result<string?>.Failure(ErrorType.NotFound, NotFoundMessage);
+
+        var previous = user.ProfileImageUrl;
+        user.ProfileImageUrl = profileImageUrl;
+        await _ctx.SaveChangesAsync();
+        return Result<string?>.Success(previous);
+    }
+
     public async Task<Result> DeleteUserAsync(UserDeleteRequest request)
     {
         var user = await _ctx.ApplicationUsers.FirstOrDefaultAsync(user => user.Id == request.Id);

@@ -2,18 +2,58 @@ import 'package:flutter/material.dart';
 import 'package:majstorio_mobile/constants.dart';
 import 'package:majstorio_mobile/layouts/master_screen.dart';
 import 'package:majstorio_mobile/models/auth/auth_session.dart';
+import 'package:majstorio_mobile/models/user/user_profile.dart';
+import 'package:majstorio_mobile/providers/account/account_provider.dart';
 import 'package:majstorio_mobile/providers/auth/auth_provider.dart';
+import 'package:majstorio_mobile/screens/account/profile_edit_screen.dart';
 import 'package:majstorio_mobile/screens/appointment/appointments_screen.dart';
 import 'package:majstorio_mobile/screens/news_post/news_post_screen.dart';
 import 'package:majstorio_mobile/screens/password/change_password_screen.dart';
 import 'package:majstorio_mobile/screens/service_request/service_requests_screen.dart';
 import 'package:majstorio_mobile/theme/app_theme.dart';
+import 'package:majstorio_mobile/widgets/common.dart';
 import 'package:majstorio_mobile/widgets/dialogs.dart';
 import 'package:provider/provider.dart';
 
-// The "Profil" tab: who is signed in, history, news, password change and sign out.
-class AccountScreen extends StatelessWidget {
+// The "Profil" tab: who is signed in (photo and name), profile editing, history, news, password change and sign out.
+class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
+
+  @override
+  State<AccountScreen> createState() => _AccountScreenState();
+}
+
+class _AccountScreenState extends State<AccountScreen> {
+  late AccountProvider _accountProvider;
+  UserProfile? profile;
+
+  @override
+  void initState() {
+    _accountProvider = context.read<AccountProvider>();
+    // A saved profile or a new photo shows here right away.
+    _accountProvider.addListener(loadProfile);
+    loadProfile();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _accountProvider.removeListener(loadProfile);
+    super.dispose();
+  }
+
+  // The header falls back to the user name from the token when the profile cannot be loaded.
+  Future<void> loadProfile() async {
+    try {
+      var result = await _accountProvider.getMine();
+      if (!mounted) return;
+      setState(() {
+        profile = result;
+      });
+    } catch (e) {
+      // Keep the fallback header.
+    }
+  }
 
   String get roleName => AuthSession.isTradesperson ? "Majstor" : "Korisnik";
 
@@ -60,26 +100,21 @@ class AccountScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppTheme.goldSoft,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.person, color: AppTheme.ink, size: 32),
-                  ),
+                  NetworkPicture(url: profile?.profileImageUrl, size: 64),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AuthSession.userName ?? "",
+                          profile?.fullName ?? AuthSession.userName ?? "",
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.ink),
                         ),
                         const SizedBox(height: 2),
-                        Text(roleName, style: const TextStyle(color: AppTheme.textMuted)),
+                        Text(
+                          "${profile?.userName ?? AuthSession.userName ?? ""} · $roleName",
+                          style: const TextStyle(color: AppTheme.textMuted),
+                        ),
                       ],
                     ),
                   ),
@@ -91,6 +126,10 @@ class AccountScreen extends StatelessWidget {
           Card(
             child: Column(
               children: [
+                tile(Icons.edit_outlined, "Uredi profil", () {
+                  open(context, const ProfileEditScreen());
+                }),
+                const Divider(),
                 if (AuthSession.isCustomer) ...[
                   tile(Icons.history, "Historija zahtjeva", () {
                     open(context, const ServiceRequestsScreen(history: true));
