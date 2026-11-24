@@ -17,7 +17,7 @@ public class OfferServiceTests : IDisposable
     public OfferServiceTests()
     {
         _s = new Scenario(_ctx);
-        _service = new OfferService(_ctx, TestSupport.NewMapper());
+        _service = new OfferService(_ctx, TestSupport.NewMapper(), new FakeMessagePublisher());
     }
 
     public void Dispose() => _ctx.Dispose();

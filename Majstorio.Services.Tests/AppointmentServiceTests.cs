@@ -130,7 +130,7 @@ public class AppointmentServiceTests : IDisposable
     private async Task<Appointment> AddStartedAppointmentAsync(bool started = true)
     {
         var offer = _s.AddOffer();
-        var offers = new OfferService(_ctx, TestSupport.NewMapper());
+        var offers = new OfferService(_ctx, TestSupport.NewMapper(), new FakeMessagePublisher());
         Assert.True((await offers.AcceptOfferAsync(TestSupport.As(_s.Customer), offer.Id)).IsSuccess);
         var appointment = await _ctx.Appointments.SingleAsync();
         if (started)

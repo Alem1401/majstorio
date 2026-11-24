@@ -128,7 +128,7 @@ public class TradespersonProfileServiceTests : IDisposable
         Assert.True((await _service.SetProfileActiveAsync(new() { Id = _s.Profile.Id, IsActive = false })).IsSuccess);
 
         Assert.Empty((await _service.GetProfilesAsync(TestSupport.As(_s.Customer), new())).Value!.Items);
-        var offers = new OfferService(_ctx, TestSupport.NewMapper());
+        var offers = new OfferService(_ctx, TestSupport.NewMapper(), new FakeMessagePublisher());
         var offer = await offers.CreateOfferAsync(TestSupport.As(_s.Profile.User), new()
         {
             ServiceRequestId = _s.Request.Id, Price = 50m, ProposedStartUtc = _s.Start, DurationMinutes = 60

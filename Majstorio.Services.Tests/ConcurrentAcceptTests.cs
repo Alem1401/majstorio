@@ -185,7 +185,7 @@ public class ConcurrentAcceptTests : IClassFixture<SqlServerTestDatabase>
         return await Task.WhenAll(calls.Select(call => Task.Run(async () =>
         {
             await using var ctx = _database.NewContext();
-            var service = new OfferService(ctx, TestSupport.NewMapper());
+            var service = new OfferService(ctx, TestSupport.NewMapper(), new FakeMessagePublisher());
             start.SignalAndWait(TimeSpan.FromSeconds(30));
             return await service.AcceptOfferAsync(call.User, call.OfferId);
         })));

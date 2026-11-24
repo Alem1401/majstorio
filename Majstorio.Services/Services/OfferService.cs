@@ -1,3 +1,4 @@
+using Majstorio.Model.Messages;
 using Majstorio.Model.Requests.Offer;
 using Majstorio.Model.Responses;
 using Majstorio.Model.Responses.Offer;
@@ -20,11 +21,13 @@ public class OfferService : IOfferService
 
     private readonly MajstorioDbContext _ctx;
     private readonly IMapper _mapper;
+    private readonly IMessagePublisher _publisher;
 
-    public OfferService(MajstorioDbContext ctx, IMapper mapper)
+    public OfferService(MajstorioDbContext ctx, IMapper mapper, IMessagePublisher publisher)
     {
         _ctx = ctx;
         _mapper = mapper;
+        _publisher = publisher;
     }
 
     public async Task<Result> CreateOfferAsync(CurrentUser user, OfferCreateRequest request)
@@ -195,6 +198,16 @@ public class OfferService : IOfferService
             // are unique in the database. The transaction rolls back.
             return Result.Failure(ErrorType.Conflict, AlreadyDecidedMessage);
         }
+
+        // Sent only after the commit, so nobody is told about a change that was rolled back.
+        // The Worker turns this message into a Notification row for the tradesperson.
+        await _publisher.PublishAsync(new NotificationMessage
+        {
+            UserId = profile.UserId,
+            ServiceRequestId = serviceRequest.Id,
+            Title = "Offer accepted",
+            Message = "Your offer was accepted and the appointment is confirmed."
+        });
 
         return Result.Success();
     }

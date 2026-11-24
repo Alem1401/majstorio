@@ -19,7 +19,7 @@ public class ServiceRequestServiceTests : IDisposable
     {
         _s = new Scenario(_ctx);
         _service = new ServiceRequestService(_ctx, TestSupport.NewMapper());
-        _offers = new OfferService(_ctx, TestSupport.NewMapper());
+        _offers = new OfferService(_ctx, TestSupport.NewMapper(), new FakeMessagePublisher());
     }
 
     public void Dispose() => _ctx.Dispose();

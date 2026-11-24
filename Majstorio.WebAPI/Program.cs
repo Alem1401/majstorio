@@ -9,6 +9,7 @@ using Majstorio.WebAPI.Filters;
 using Majstorio.WebAPI.Handlers;
 using Majstorio.WebAPI.Services;
 using Majstorio.WebAPI.Services.Auth;
+using Majstorio.WebAPI.Services.Messaging;
 using Mapster;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
@@ -61,6 +62,7 @@ builder.Services.AddScoped<ITradespersonProfileService, TradespersonProfileServi
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
