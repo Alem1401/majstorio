@@ -3,12 +3,15 @@ import 'package:majstorio_mobile/layouts/master_screen.dart';
 import 'package:majstorio_mobile/models/appointment/appointment.dart';
 import 'package:majstorio_mobile/models/auth/auth_session.dart';
 import 'package:majstorio_mobile/models/offer/offer.dart';
+import 'package:majstorio_mobile/models/reviews/review.dart';
 import 'package:majstorio_mobile/models/service_request/service_request.dart';
 import 'package:majstorio_mobile/providers/appointment/appointment_provider.dart';
 import 'package:majstorio_mobile/providers/offer/offer_provider.dart';
+import 'package:majstorio_mobile/providers/review/review_provider.dart';
 import 'package:majstorio_mobile/providers/service_request/service_request_provider.dart';
 import 'package:majstorio_mobile/screens/offer/offer_details_screen.dart';
 import 'package:majstorio_mobile/screens/offer/offers_compare_screen.dart';
+import 'package:majstorio_mobile/screens/review/review_form.dart';
 import 'package:majstorio_mobile/screens/service_request/service_request_form_screen.dart';
 import 'package:majstorio_mobile/theme/app_theme.dart';
 import 'package:majstorio_mobile/utils/error_message.dart';
@@ -34,6 +37,12 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
   late ServiceRequestProvider _serviceRequestProvider;
   late OfferProvider _offerProvider;
   late AppointmentProvider _appointmentProvider;
+  late ReviewProvider _reviewProvider;
+
+  // The rating of the completed job; null when it is not rated yet.
+  ReviewResponse? review;
+  // False until the rating was asked for, so the button does not flash on a rated job.
+  var isReviewLoaded = false;
 
   ServiceRequestDetail? detail;
   String? error;
@@ -46,6 +55,7 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
     _serviceRequestProvider = context.read<ServiceRequestProvider>();
     _offerProvider = context.read<OfferProvider>();
     _appointmentProvider = context.read<AppointmentProvider>();
+    _reviewProvider = context.read<ReviewProvider>();
     _serviceRequestProvider.addListener(loadDetail);
     _offerProvider.addListener(loadDetail);
     _appointmentProvider.addListener(loadDetail);
@@ -72,6 +82,7 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
       setState(() {
         detail = result;
       });
+      if (canBeRated(result)) loadReview(result.appointment!.id);
     } catch (e) {
       if (!mounted || loadNumber != _loadNumber) return;
       setState(() {
@@ -80,6 +91,32 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
         if (e is ApiException && e.statusCode == 404) detail = null;
       });
     }
+  }
+
+  // Only the customer who owns the request rates it, and only once the job is completed.
+  bool canBeRated(ServiceRequestDetail detail) =>
+      isCustomerOwner(detail.request) && detail.appointment?.status == Appointment.completed;
+
+  Future<void> loadReview(int appointmentId) async {
+    try {
+      var result = await _reviewProvider.getForAppointment(appointmentId);
+      if (!mounted) return;
+      setState(() {
+        review = result;
+        isReviewLoaded = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      showMessage(context, exceptionText(e));
+    }
+  }
+
+  void openReviewForm(Appointment appointment) async {
+    var saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => ReviewForm(appointment: appointment)),
+    );
+    if (saved == true) loadReview(appointment.id);
   }
 
   // Runs an action, shows its result, and reloads the request. A refused action (for example 409,
@@ -443,6 +480,31 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
     return buttons;
   }
 
+  // The "rate" button, or the rating that was already given.
+  Widget buildReview(Appointment appointment) {
+    var existing = review;
+    if (existing == null) {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => openReviewForm(appointment),
+          icon: const Icon(Icons.star_outline),
+          label: const Text("Ocijeni majstora"),
+        ),
+      );
+    }
+    var comment = existing.comment;
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.star, color: AppTheme.gold),
+        title: Text("${existing.rating}/5"),
+        subtitle: Text(
+          [?comment, "Ocijenjeno ${formatDate(existing.createdAtUtc)}"].join("\n"),
+        ),
+      ),
+    );
+  }
+
   Widget buildContent(ServiceRequestDetail detail) {
     var request = detail.request;
     var actions = buildActions(detail);
@@ -474,6 +536,10 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
         if (detail.appointment != null) ...[
           const SectionTitle("Termin"),
           buildAppointment(detail),
+        ],
+        if (canBeRated(detail) && isReviewLoaded) ...[
+          const SectionTitle("Vaša ocjena"),
+          buildReview(detail.appointment!),
         ],
         SectionTitle(offersTitle),
         if (detail.offers.isEmpty)
