@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_mobile/models/auth/auth_session.dart';
+import 'package:majstorio_mobile/providers/notification/notification_provider.dart';
 import 'package:majstorio_mobile/screens/account/account_screen.dart';
 import 'package:majstorio_mobile/screens/appointment/appointments_screen.dart';
 import 'package:majstorio_mobile/screens/home_screen.dart';
+import 'package:majstorio_mobile/screens/notification/notifications_screen.dart';
 import 'package:majstorio_mobile/screens/offer/offers_screen.dart';
 import 'package:majstorio_mobile/screens/service_request/open_requests_screen.dart';
 import 'package:majstorio_mobile/screens/service_request/service_requests_screen.dart';
 import 'package:majstorio_mobile/screens/tradesperson_profile/tradesperson_profiles_screen.dart';
+import 'package:provider/provider.dart';
 
 class _Tab {
   const _Tab(this.label, this.icon, this.selectedIcon, this.screen);
@@ -47,6 +50,37 @@ class _MainNavigationState extends State<MainNavigation> {
     _Tab("Profil", Icons.person_outline, Icons.person, AccountScreen()),
   ];
 
+  // The number on the bell in the bottom bar.
+  var unreadCount = 0;
+
+  @override
+  void initState() {
+    loadUnreadCount();
+    super.initState();
+  }
+
+  Future<void> loadUnreadCount() async {
+    try {
+      var count = await context.read<NotificationProvider>().getUnreadCount();
+      if (!mounted) return;
+      setState(() {
+        unreadCount = count;
+      });
+    } catch (e) {
+      // The badge is only a hint; when it cannot be loaded the bell is shown without a number.
+    }
+  }
+
+  // The bell is not a tab: it opens the notifications on top, and the number is loaded again on return.
+  Future<void> openNotifications() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+    );
+    if (!mounted) return;
+    loadUnreadCount();
+  }
+
   @override
   Widget build(BuildContext context) {
     var tabs = AuthSession.isTradesperson ? _tradespersonTabs : _customerTabs;
@@ -59,6 +93,11 @@ class _MainNavigationState extends State<MainNavigation> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (value) {
+          // The last item is the bell after the tabs.
+          if (value == tabs.length) {
+            openNotifications();
+            return;
+          }
           setState(() {
             index = value;
           });
@@ -70,6 +109,14 @@ class _MainNavigationState extends State<MainNavigation> {
               selectedIcon: Icon(tab.selectedIcon),
               label: tab.label,
             ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text("$unreadCount"),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            label: "Obavijesti",
+          ),
         ],
       ),
     );

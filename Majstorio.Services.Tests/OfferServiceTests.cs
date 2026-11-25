@@ -257,7 +257,7 @@ public class OfferServiceTests : IDisposable
         var firstRequest = _s.AddRequest(firstCustomer);
         var first = _s.AddOffer(request: firstRequest);
         Assert.True((await _service.AcceptOfferAsync(TestSupport.As(firstCustomer), first.Id)).IsSuccess);
-        var requests = new ServiceRequestService(_ctx, TestSupport.NewMapper());
+        var requests = new ServiceRequestService(_ctx, TestSupport.NewMapper(), new FakeMessagePublisher());
         Assert.True((await requests.CancelServiceRequestAsync(TestSupport.As(firstCustomer), new() { Id = firstRequest.Id })).IsSuccess);
 
         Assert.True((await _service.AcceptOfferAsync(TestSupport.As(_s.Customer), _s.AddOffer().Id)).IsSuccess);

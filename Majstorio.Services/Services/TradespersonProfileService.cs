@@ -56,6 +56,16 @@ public class TradespersonProfileService : ITradespersonProfileService
             query = query.Where(profile => profile.Reviews.Average(review => (double?)review.Rating) >= minimum);
         }
 
+        // Busy = a pending or confirmed appointment that overlaps the requested interval.
+        if (search.AvailableFromUtc.HasValue && search.AvailableToUtc.HasValue)
+        {
+            var from = search.AvailableFromUtc.Value;
+            var to = search.AvailableToUtc.Value;
+            query = query.Where(profile => !profile.Offers.Any(offer => offer.Appointment != null
+                && (offer.Appointment.Status == AppointmentStatus.Pending || offer.Appointment.Status == AppointmentStatus.Confirmed)
+                && offer.Appointment.StartUtc < to && offer.Appointment.EndUtc > from));
+        }
+
         // Best rated first; profiles without reviews come last.
         var page = await query
             .OrderByDescending(profile => profile.Reviews.Average(review => (double?)review.Rating))
@@ -83,6 +93,22 @@ public class TradespersonProfileService : ITradespersonProfileService
                     .Select(service => service.ServiceCategory.Name).Distinct().ToList()
             })
             .ToPagedAsync(search, profiles => profiles);
+
+        // The recommender reads these rows, so only the first page of a mobile user's search is logged.
+        if (!user.IsAdministrator && search.Page == 1)
+        {
+            _ctx.SearchLogs.Add(new SearchLog
+            {
+                UserId = user.Id,
+                CityId = search.CityId,
+                ServiceCategoryId = search.ServiceCategoryId,
+                Query = string.IsNullOrWhiteSpace(search.Name) ? null : search.Name.Trim(),
+                MinimumRating = search.MinimumRating,
+                AvailableFromUtc = search.AvailableFromUtc,
+                AvailableToUtc = search.AvailableToUtc
+            });
+            await _ctx.SaveChangesAsync();
+        }
 
         return Result<PagedResponse<TradespersonProfileResponse>>.Success(page);
     }

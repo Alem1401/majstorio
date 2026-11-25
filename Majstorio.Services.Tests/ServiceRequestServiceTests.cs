@@ -18,7 +18,7 @@ public class ServiceRequestServiceTests : IDisposable
     public ServiceRequestServiceTests()
     {
         _s = new Scenario(_ctx);
-        _service = new ServiceRequestService(_ctx, TestSupport.NewMapper());
+        _service = new ServiceRequestService(_ctx, TestSupport.NewMapper(), new FakeMessagePublisher());
         _offers = new OfferService(_ctx, TestSupport.NewMapper(), new FakeMessagePublisher());
     }
 

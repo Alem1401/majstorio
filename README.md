@@ -8,7 +8,7 @@ The application is under development.
 
 - The database schema is defined through EF Core configurations and created by migrations. The API applies pending migrations and the seed data on startup.
 - The API covers the core flow: registration and login, service requests, offers, accepting an offer with appointment confirmation, completing and cancelling, and the status history. It also has the administrative data: cities, service categories, users, tradesperson profiles, news posts, reviews, the dashboard and the two reports.
-- Not implemented yet: RabbitMQ publishing and the worker consumer, notifications and SignalR, PayPal payment and refund, the recommender, and e-mail delivery of the password reset token.
+- Not implemented yet: notification endpoints and SignalR, PayPal payment and refund, the recommender, and e-mail delivery of the password reset token.
 - The Flutter desktop app is in `UI/majstorio_desktop` (administrators). The Flutter Android app is in `UI/majstorio_mobile` (customers and tradespeople), including ratings and profile editing with a photo.
 
 ## Technologies
@@ -16,7 +16,7 @@ The application is under development.
 - C# / .NET 9 and ASP.NET Core Web API.
 - Entity Framework Core, Mapster, FluentValidation and SQL Server.
 - JWT bearer authentication.
-- RabbitMQ and a separate .NET worker (host only for now).
+- RabbitMQ and a separate .NET worker that turns messages into notifications.
 - Docker Compose for the API, worker, broker and database.
 - Flutter / Dart for the Windows and Android applications.
 
@@ -28,7 +28,7 @@ The application is under development.
 | `Majstorio.Model` | Request DTOs, response DTOs and search objects. |
 | `Majstorio.Services` | Database entities, EF Core context, validators and the service layer. |
 | `Majstorio.Common.Services` | Shared services (password hashing). |
-| `Majstorio.Worker` | Separate worker host for the planned background message processing. |
+| `Majstorio.Worker` | Separate worker: reads RabbitMQ messages and saves them as `Notification` rows. |
 | `Majstorio.Services.Tests` | xUnit tests. |
 
 ## Build and test
@@ -103,7 +103,7 @@ All of them are listed with example values in `.env.example`.
 | `ASPNETCORE_ENVIRONMENT` | API | `Development` enables Scalar and returns the password reset token in the response. |
 | `ASPNETCORE_URLS` / `ASPNETCORE_HTTP_PORTS` | API | Address the API listens on (local run / container). |
 | `MSSQL_SA_PASSWORD`, `DATABASE_*`, `ACCEPT_EULA`, `MSSQL_PID` | Compose | SQL Server container settings; also used to build the connection string. |
-| `RabbitMq__*` | Compose, worker | Broker host, port, user, password, virtual host, exchange and queue. The messaging code is not written yet. |
+| `RabbitMq__*` | Compose, API, worker | Broker host, port, user, password, virtual host, exchange and queue. |
 | `*_IMAGE`, `HOST_BIND_ADDRESS`, `*_HOST_PORT`, `API_CONTAINER_PORT` | Compose | Pinned image tags and published ports. |
 | `ProfileImages__Path` | API (optional) | Folder for uploaded profile photos. Defaults to `uploads/profile-images` next to the API; in Docker it is the `profile-images` volume. |
 | `PayPal__*` | API (planned) | PayPal sandbox settings; payments are not implemented yet. |
@@ -207,6 +207,9 @@ All require a token. Who the user is always comes from the token.
 | `GET` | `/Account/photos/{fileName}` | signed in | The photo file. Not available without a token. |
 | `GET` | `/Reviews/mine?appointmentId=&rating=` | Customer | The customer's own ratings. |
 | `POST` | `/Reviews/mine` | Customer | Body `{ appointmentId, rating (1-5), comment? }`. Only for a completed job on the customer's own request, once per job. |
+| `GET` | `/Notifications?isRead=` | signed in | The user's own notifications, newest first, paged. `isRead=false` with `totalCount` gives the unread count. |
+| `PUT` | `/Notifications/{id}/read` | signed in | Marks one of the user's notifications read. Someone else's id answers 404. |
+| `PUT` | `/Notifications/read-all` | signed in | Marks all of the user's unread notifications read. |
 
 ### Administrative data (desktop)
 

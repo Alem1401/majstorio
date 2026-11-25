@@ -1,3 +1,4 @@
+using Majstorio.Model.Messages;
 using Majstorio.Model.Requests.Appointment;
 using Majstorio.Model.Responses;
 using Majstorio.Model.Responses.Appointment;
@@ -18,11 +19,13 @@ public class AppointmentService : IAppointmentService
 {
     private readonly MajstorioDbContext _ctx;
     private readonly IMapper _mapper;
+    private readonly IMessagePublisher _publisher;
 
-    public AppointmentService(MajstorioDbContext ctx, IMapper mapper)
+    public AppointmentService(MajstorioDbContext ctx, IMapper mapper, IMessagePublisher publisher)
     {
         _ctx = ctx;
         _mapper = mapper;
+        _publisher = publisher;
     }
 
     public async Task<Result> CompleteAppointmentAsync(CurrentUser user, int id)
@@ -55,6 +58,14 @@ public class AppointmentService : IAppointmentService
 
         await _ctx.SaveChangesAsync();
         await transaction.CommitAsync();
+
+        await _publisher.PublishAsync(new NotificationMessage
+        {
+            UserId = appointment.Offer.ServiceRequest.CustomerId,
+            ServiceRequestId = appointment.Offer.ServiceRequestId,
+            Title = "Job completed",
+            Message = "The tradesperson marked your job as completed."
+        });
         return Result.Success();
     }
 

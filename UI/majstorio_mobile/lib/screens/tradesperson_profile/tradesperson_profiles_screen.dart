@@ -49,6 +49,8 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
   int? cityId;
   int? categoryId;
   int? minimumRating;
+  // Local midnight of the chosen day; only tradespeople free that whole day are shown.
+  DateTime? availableDay;
 
   // Paging: which page is shown and how many rows the server has in total.
   var page = 1;
@@ -106,6 +108,10 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
           cityId: cityId,
           serviceCategoryId: categoryId,
           minimumRating: minimumRating,
+          availableFromUtc: availableDay?.toUtc(),
+          availableToUtc: availableDay == null
+              ? null
+              : DateTime(availableDay!.year, availableDay!.month, availableDay!.day + 1).toUtc(),
         ),
       );
       if (!mounted || loadNumber != _loadNumber) return;
@@ -248,6 +254,22 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
       page = 1;
       loadProfiles();
     }
+  }
+
+  // Picks the day the tradesperson must be free; showDatePicker returns local midnight.
+  void pickAvailableDay() async {
+    var now = DateTime.now();
+    var day = await showDatePicker(
+      context: context,
+      initialDate: availableDay ?? now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 365)),
+      helpText: "Slobodan na dan",
+    );
+    if (day == null || !mounted) return;
+    setState(() => availableDay = day);
+    page = 1;
+    loadProfiles();
   }
 
   // The applied filters as chips; tapping the x removes that filter.
@@ -413,6 +435,26 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
               ],
             ),
             buildActiveFilters(),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: availableDay == null
+                  ? ActionChip(
+                      avatar: const Icon(Icons.event_available, size: 18),
+                      label: const Text("Slobodan na dan…"),
+                      onPressed: pickAvailableDay,
+                    )
+                  : InputChip(
+                      avatar: const Icon(Icons.event_available, size: 18),
+                      label: Text("Slobodan ${formatDate(availableDay!)}"),
+                      onPressed: pickAvailableDay,
+                      onDeleted: () {
+                        setState(() => availableDay = null);
+                        page = 1;
+                        loadProfiles();
+                      },
+                    ),
+            ),
             const SizedBox(height: 12),
             const Text(
               "Poredano po prosječnoj ocjeni",

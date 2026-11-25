@@ -12,7 +12,7 @@ namespace Majstorio.Services.Services;
 
 public class AuthService : IAuthService
 {
-    // One message for an unknown user and a wrong password, so usernames cannot be probed.
+   
     private const string InvalidCredentialsMessage = "Invalid username or password.";
 
     private const string InvalidResetTokenMessage = "The reset token is invalid or has expired.";

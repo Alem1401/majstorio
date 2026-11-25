@@ -165,8 +165,9 @@ public class OfferService : IOfferService
         offer.DecidedByUserId = user.Id;
         offer.DecidedAtUtc = now;
 
-        var otherOffers = await _ctx.Offers.Where(other => other.ServiceRequestId == offer.ServiceRequestId
-            && other.Id != offer.Id && other.Status == OfferStatus.Pending).ToListAsync();
+        var otherOffers = await _ctx.Offers.Include(other => other.TradespersonProfile)
+            .Where(other => other.ServiceRequestId == offer.ServiceRequestId
+                && other.Id != offer.Id && other.Status == OfferStatus.Pending).ToListAsync();
         foreach (var other in otherOffers)
         {
             other.Status = OfferStatus.Closed;
@@ -208,6 +209,18 @@ public class OfferService : IOfferService
             Title = "Offer accepted",
             Message = "Your offer was accepted and the appointment is confirmed."
         });
+
+        // The other tradespeople are told their offer was closed, and why.
+        foreach (var other in otherOffers)
+        {
+            await _publisher.PublishAsync(new NotificationMessage
+            {
+                UserId = other.TradespersonProfile.UserId,
+                ServiceRequestId = serviceRequest.Id,
+                Title = "Offer not accepted",
+                Message = "Another offer was accepted for this request."
+            });
+        }
 
         return Result.Success();
     }

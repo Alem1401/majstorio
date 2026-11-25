@@ -1,7 +1,9 @@
 using System.Reflection;
 using FluentValidation;
 using Majstorio.Model.Requests.City;
+using Majstorio.Model.Requests.TradespersonProfile;
 using Majstorio.Services.Validators.City;
+using Majstorio.Services.Validators.TradespersonProfile;
 using Xunit;
 
 namespace Majstorio.Services.Tests;
@@ -86,6 +88,20 @@ public class RequestValidatorTests
         var result = CreateValidator(requestType).Validate(new ValidationContext<object>(request));
 
         Assert.True(result.IsValid, string.Join("; ", result.Errors));
+    }
+
+    [Fact]
+    public void TradespersonSearch_AvailabilityNeedsBothDatesInOrder()
+    {
+        var validator = new TradespersonProfileSearchRequestValidator();
+        var day = DateTime.UtcNow.Date;
+
+        Assert.True(validator.Validate(new TradespersonProfileSearchRequest
+            { AvailableFromUtc = day, AvailableToUtc = day.AddDays(1) }).IsValid);
+        Assert.False(validator.Validate(new TradespersonProfileSearchRequest { AvailableFromUtc = day }).IsValid);
+        Assert.False(validator.Validate(new TradespersonProfileSearchRequest { AvailableToUtc = day }).IsValid);
+        Assert.False(validator.Validate(new TradespersonProfileSearchRequest
+            { AvailableFromUtc = day, AvailableToUtc = day }).IsValid);
     }
 
     private static IValidator CreateValidator(Type requestType)

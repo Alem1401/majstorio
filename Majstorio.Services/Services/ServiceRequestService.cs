@@ -1,3 +1,4 @@
+using Majstorio.Model.Messages;
 using Majstorio.Model.Requests.ServiceRequest;
 using Majstorio.Model.Responses;
 using Majstorio.Model.Responses.Appointment;
@@ -20,11 +21,13 @@ public class ServiceRequestService : IServiceRequestService
 
     private readonly MajstorioDbContext _ctx;
     private readonly IMapper _mapper;
+    private readonly IMessagePublisher _publisher;
 
-    public ServiceRequestService(MajstorioDbContext ctx, IMapper mapper)
+    public ServiceRequestService(MajstorioDbContext ctx, IMapper mapper, IMessagePublisher publisher)
     {
         _ctx = ctx;
         _mapper = mapper;
+        _publisher = publisher;
     }
 
     public async Task<Result<PagedResponse<ServiceRequestResponse>>> GetServiceRequestsAsync(
@@ -192,6 +195,13 @@ public class ServiceRequestService : IServiceRequestService
         if (!move.IsSuccess)
             return move;
 
+        // Everyone involved before the cancellation: the customer and the tradespeople with an open or accepted offer.
+        var involvedUserIds = serviceRequest.Offers
+            .Where(offer => offer.Status == OfferStatus.Pending || offer.Status == OfferStatus.Accepted)
+            .Select(offer => offer.TradespersonProfile.UserId)
+            .Append(serviceRequest.CustomerId)
+            .ToList();
+
         foreach (var offer in serviceRequest.Offers.Where(offer => offer.Status == OfferStatus.Pending))
         {
             offer.Status = OfferStatus.Closed;
@@ -202,6 +212,18 @@ public class ServiceRequestService : IServiceRequestService
 
         await _ctx.SaveChangesAsync();
         await transaction.CommitAsync();
+
+        // The person who cancelled already knows; everyone else involved is told.
+        foreach (var userId in involvedUserIds.Where(userId => userId != user.Id).Distinct())
+        {
+            await _publisher.PublishAsync(new NotificationMessage
+            {
+                UserId = userId,
+                ServiceRequestId = serviceRequest.Id,
+                Title = "Request cancelled",
+                Message = "A service request you are part of was cancelled."
+            });
+        }
         return Result.Success();
     }
 

@@ -8,6 +8,9 @@ class TradespersonProfileSearchRequest extends BaseSearchRequest {
   final int? serviceCategoryId;
   // 1 to 5; null means any rating.
   final int? minimumRating;
+  // Both or neither; hides tradespeople who already have a job in this interval.
+  final DateTime? availableFromUtc;
+  final DateTime? availableToUtc;
 
   TradespersonProfileSearchRequest({
     super.page,
@@ -16,6 +19,8 @@ class TradespersonProfileSearchRequest extends BaseSearchRequest {
     this.cityId,
     this.serviceCategoryId,
     this.minimumRating,
+    this.availableFromUtc,
+    this.availableToUtc,
   });
 
   @override
@@ -25,5 +30,7 @@ class TradespersonProfileSearchRequest extends BaseSearchRequest {
     if (cityId != null) 'cityId': cityId.toString(),
     if (serviceCategoryId != null) 'serviceCategoryId': serviceCategoryId.toString(),
     if (minimumRating != null) 'minimumRating': minimumRating.toString(),
+    if (availableFromUtc != null) 'availableFromUtc': availableFromUtc!.toUtc().toIso8601String(),
+    if (availableToUtc != null) 'availableToUtc': availableToUtc!.toUtc().toIso8601String(),
   };
 }

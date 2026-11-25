@@ -17,8 +17,8 @@ public class AppointmentServiceTests : IDisposable
     public AppointmentServiceTests()
     {
         _s = new Scenario(_ctx);
-        _service = new AppointmentService(_ctx, TestSupport.NewMapper());
-        _requests = new ServiceRequestService(_ctx, TestSupport.NewMapper());
+        _service = new AppointmentService(_ctx, TestSupport.NewMapper(), new FakeMessagePublisher());
+        _requests = new ServiceRequestService(_ctx, TestSupport.NewMapper(), new FakeMessagePublisher());
     }
 
     public void Dispose() => _ctx.Dispose();

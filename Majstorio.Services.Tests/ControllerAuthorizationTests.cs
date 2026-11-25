@@ -16,6 +16,7 @@ public class ControllerAuthorizationTests
     [InlineData(typeof(AppointmentsController))]
     [InlineData(typeof(AccountController))]
     [InlineData(typeof(MyReviewsController))]
+    [InlineData(typeof(NotificationsController))]
     public void FlowControllers_RequireAToken(Type controller)
     {
         Assert.NotNull(controller.GetCustomAttribute<AuthorizeAttribute>());

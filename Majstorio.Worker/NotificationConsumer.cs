@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Majstorio.Model.Messages;
 using Majstorio.Services.Database;
+using Microsoft.EntityFrameworkCore;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -11,6 +12,7 @@ public sealed class NotificationConsumer : BackgroundService
 {
     // Must match the routing key the API publishes with.
     private const string RoutingKey = "notification";
+    private const int MaxAttempts = 5;
 
     private readonly IConfiguration _configuration;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -26,17 +28,35 @@ public sealed class NotificationConsumer : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var exchange = _configuration["RabbitMq:Exchange"]!;
-        var queue = _configuration["RabbitMq:Queue"]!;
+        // If RabbitMQ is not up yet or the connection drops, log why and connect again,
+        // so the worker never stops silently.
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await ListenAsync(stoppingToken);
+            }
+            catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogError(exception, "RabbitMQ connection failed. Trying again in 5 seconds.");
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
+        }
+    }
+
+    private async Task ListenAsync(CancellationToken stoppingToken)
+    {
+        var exchange = Setting("RabbitMq:Exchange");
+        var queue = Setting("RabbitMq:Queue");
 
         // 1. Connect to RabbitMQ with the values from .env.
         var factory = new ConnectionFactory
         {
-            HostName = _configuration["RabbitMq:Host"]!,
-            Port = int.Parse(_configuration["RabbitMq:Port"] ?? "5672"),
-            UserName = _configuration["RabbitMq:UserName"]!,
-            Password = _configuration["RabbitMq:Password"]!,
-            VirtualHost = _configuration["RabbitMq:VirtualHost"] ?? "/"
+            HostName = Setting("RabbitMq:Host"),
+            Port = int.Parse(Setting("RabbitMq:Port")),
+            UserName = Setting("RabbitMq:UserName"),
+            Password = Setting("RabbitMq:Password"),
+            VirtualHost = Setting("RabbitMq:VirtualHost")
         };
         await using var connection = await factory.CreateConnectionAsync(stoppingToken);
         await using var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
@@ -51,24 +71,36 @@ public sealed class NotificationConsumer : BackgroundService
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.ReceivedAsync += async (_, delivery) =>
         {
-            try
+            for (var attempt = 1; ; attempt++)
             {
-                await SaveNotificationAsync(delivery.Body.ToArray());
-                // Tell RabbitMQ the message is done, so it can delete it.
-                await channel.BasicAckAsync(delivery.DeliveryTag, multiple: false, stoppingToken);
-            }
-            catch (Exception exception)
-            {
-                // The message is dropped (not requeued) and the reason is logged.
-                _logger.LogError(exception, "Could not process message {DeliveryTag}.", delivery.DeliveryTag);
-                await channel.BasicNackAsync(delivery.DeliveryTag, multiple: false, requeue: false, stoppingToken);
+                try
+                {
+                    await SaveNotificationAsync(delivery.Body.ToArray());
+                    // Tell RabbitMQ the message is done, so it can delete it.
+                    await channel.BasicAckAsync(delivery.DeliveryTag, multiple: false, stoppingToken);
+                    return;
+                }
+                catch (Exception exception) when (attempt < MaxAttempts)
+                {
+                    // Retry with exponential backoff: 1 s, 2 s, 4 s, 8 s.
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt - 1));
+                    _logger.LogWarning(exception, "Attempt {Attempt} failed. Retrying in {Delay}.", attempt, delay);
+                    await Task.Delay(delay, stoppingToken);
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(exception, "Message failed {Attempts} times and was dropped.", MaxAttempts);
+                    await channel.BasicNackAsync(delivery.DeliveryTag, multiple: false, requeue: false, stoppingToken);
+                    return;
+                }
             }
         };
         await channel.BasicConsumeAsync(queue, autoAck: false, consumer: consumer, cancellationToken: stoppingToken);
         _logger.LogInformation("Listening on queue {Queue}.", queue);
 
-        // Keep the worker alive until the app is stopped.
-        await Task.Delay(Timeout.Infinite, stoppingToken);
+        // Stay here while connected; when the connection drops, ExecuteAsync connects again.
+        while (connection.IsOpen)
+            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
     }
 
     // The actual work: one Notification row per message.
@@ -81,6 +113,10 @@ public sealed class NotificationConsumer : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<MajstorioDbContext>();
 
+        // A message delivered again (the worker stopped before its ack) was already saved.
+        if (await ctx.Notifications.AnyAsync(notification => notification.EventId == message.EventId))
+            return;
+
         ctx.Notifications.Add(new Notification
         {
             EventId = message.EventId,
@@ -92,4 +128,7 @@ public sealed class NotificationConsumer : BackgroundService
         await ctx.SaveChangesAsync();
         _logger.LogInformation("Created notification for user {UserId}.", message.UserId);
     }
+
+    private string Setting(string key)
+        => _configuration[key] ?? throw new InvalidOperationException($"{key.Replace(":", "__")} is not set in .env.");
 }

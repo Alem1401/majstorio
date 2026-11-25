@@ -34,6 +34,7 @@ new OfferMappingProfile().Register(mappingConfig);
 new ServiceRequestMappingProfile().Register(mappingConfig);
 new ReviewMappingProfile().Register(mappingConfig);
 new UserMappingProfile().Register(mappingConfig);
+new NotificationMappingProfile().Register(mappingConfig);
 builder.Services.AddSingleton(mappingConfig);
 builder.Services.AddScoped<IMapper, ServiceMapper>();
 
@@ -62,6 +63,7 @@ builder.Services.AddScoped<ITradespersonProfileService, TradespersonProfileServi
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

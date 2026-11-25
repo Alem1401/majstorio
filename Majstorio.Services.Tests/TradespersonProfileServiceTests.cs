@@ -71,6 +71,25 @@ public class TradespersonProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task List_FilteredByAvailability_HidesBusyTradespeopleAndKeepsFreeOnes()
+    {
+        var free = _s.AddProfile();
+        var offer = _s.AddOffer(status: OfferStatus.Accepted);
+        _ctx.Appointments.Add(new Appointment
+        {
+            Offer = offer, StartUtc = _s.Start, EndUtc = _s.Start.AddHours(1), Status = AppointmentStatus.Confirmed
+        });
+        await _ctx.SaveChangesAsync();
+
+        var result = (await _service.GetProfilesAsync(TestSupport.As(_s.Customer), new()
+        {
+            AvailableFromUtc = _s.Start.AddMinutes(-30), AvailableToUtc = _s.Start.AddMinutes(30)
+        })).Value!;
+
+        Assert.Equal(free.Id, Assert.Single(result.Items).Id);
+    }
+
+    [Fact]
     public async Task Detail_ReturnsServicesAndLatestReviews()
     {
         AddReview(_s.Profile, 1, 5);
@@ -138,6 +157,34 @@ public class TradespersonProfileServiceTests : IDisposable
         Assert.True((await _service.SetProfileActiveAsync(new() { Id = _s.Profile.Id, IsActive = true })).IsSuccess);
         Assert.Single((await _service.GetProfilesAsync(TestSupport.As(_s.Customer), new())).Value!.Items);
         Assert.Equal(ErrorType.NotFound, (await _service.SetProfileActiveAsync(new() { Id = 999 })).ErrorType);
+    }
+
+    [Fact]
+    public async Task List_FirstPageOfACustomerSearch_WritesOneSearchLog()
+    {
+        await _service.GetProfilesAsync(TestSupport.As(_s.Customer), new()
+        {
+            Name = "  Marko ", CityId = _s.City.Id, ServiceCategoryId = _s.Category.Id, MinimumRating = 4,
+            AvailableFromUtc = _s.Start, AvailableToUtc = _s.Start.AddDays(1)
+        });
+
+        var log = Assert.Single(_ctx.SearchLogs);
+        Assert.Equal(_s.Customer.Id, log.UserId);
+        Assert.Equal(_s.City.Id, log.CityId);
+        Assert.Equal(_s.Category.Id, log.ServiceCategoryId);
+        Assert.Equal("Marko", log.Query);
+        Assert.Equal(4m, log.MinimumRating);
+        Assert.Equal(_s.Start, log.AvailableFromUtc);
+        Assert.Equal(_s.Start.AddDays(1), log.AvailableToUtc);
+    }
+
+    [Fact]
+    public async Task List_SecondPageOrAdministratorSearch_WritesNoSearchLog()
+    {
+        await _service.GetProfilesAsync(TestSupport.As(_s.Customer), new() { Page = 2 });
+        await _service.GetProfilesAsync(TestSupport.As(_s.Administrator), new());
+
+        Assert.Empty(_ctx.SearchLogs);
     }
 
     private void AddReview(TradespersonProfile profile, int appointmentId, int rating) => _ctx.Reviews.Add(new Review

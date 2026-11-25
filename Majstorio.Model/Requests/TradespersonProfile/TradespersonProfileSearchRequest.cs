@@ -8,6 +8,9 @@ public class TradespersonProfileSearchRequest : BaseSearchRequest
     public int? ServiceCategoryId { get; set; }
     // 1 to 5; profiles without reviews do not match.
     public decimal? MinimumRating { get; set; }
+    // Both or neither; hides tradespeople with a pending or confirmed appointment in this interval.
+    public DateTime? AvailableFromUtc { get; set; }
+    public DateTime? AvailableToUtc { get; set; }
     // Administrators only; everyone else always gets approved, active profiles.
     public bool? IsApproved { get; set; }
     public bool? IsActive { get; set; }
