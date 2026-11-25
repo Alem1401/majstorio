@@ -56,7 +56,7 @@ public class CityServiceTests : IDisposable
     [Fact]
     public async Task Create_TrimsNameAndReturnsTheNewCity()
     {
-        var result = await _service.CreateCityAsync(new CityInsertRequest { Name = "  Travnik  " });
+        var result = await _service.CreateCityAsync(new CityCreateRequest { Name = "  Travnik  " });
 
         Assert.True(result.IsSuccess);
         Assert.True(result.Value!.Id > 0);
@@ -70,7 +70,7 @@ public class CityServiceTests : IDisposable
     {
         await AddCitiesAsync("Mostar");
 
-        var result = await _service.CreateCityAsync(new CityInsertRequest { Name = " Mostar " });
+        var result = await _service.CreateCityAsync(new CityCreateRequest { Name = " Mostar " });
 
         Assert.Equal(ErrorType.Conflict, result.ErrorType);
         Assert.Single(await _ctx.Cities.ToListAsync());
@@ -81,7 +81,7 @@ public class CityServiceTests : IDisposable
     {
         var city = (await AddCitiesAsync("Travnik")).Single();
 
-        var result = await _service.UpdateCityAsync(city.Id, new CityUpdateRequest { Name = " Travnik Centar ", IsActive = false });
+        var result = await _service.UpdateCityAsync(new CityUpdateRequest { Id = city.Id, Name = " Travnik Centar ", IsActive = false });
 
         Assert.True(result.IsSuccess);
         _ctx.ChangeTracker.Clear();
@@ -96,7 +96,7 @@ public class CityServiceTests : IDisposable
     {
         var cities = await AddCitiesAsync("Mostar", "Sarajevo");
 
-        var result = await _service.UpdateCityAsync(cities[0].Id, new CityUpdateRequest { Name = "Sarajevo", IsActive = true });
+        var result = await _service.UpdateCityAsync(new CityUpdateRequest { Id = cities[0].Id, Name = "Sarajevo", IsActive = true });
 
         Assert.Equal(ErrorType.Conflict, result.ErrorType);
     }
@@ -105,7 +105,7 @@ public class CityServiceTests : IDisposable
     public async Task MissingCity_ReturnsNotFoundForReadUpdateAndDelete()
     {
         Assert.Equal(ErrorType.NotFound, (await _service.GetCityByIdAsync(999)).ErrorType);
-        Assert.Equal(ErrorType.NotFound, (await _service.UpdateCityAsync(999, new CityUpdateRequest { Name = "X" })).ErrorType);
+        Assert.Equal(ErrorType.NotFound, (await _service.UpdateCityAsync(new CityUpdateRequest { Id = 999, Name = "X" })).ErrorType);
         Assert.Equal(ErrorType.NotFound, (await _service.DeleteCityAsync(new CityDeleteRequest { Id = 999 })).ErrorType);
     }
 
@@ -156,7 +156,7 @@ public class CityServiceTests : IDisposable
     [Fact]
     public void InsertValidator_RejectsNamesLongerThanTheColumn()
     {
-        var result = new CityInsertRequestValidator().Validate(new CityInsertRequest { Name = new string('a', 101) });
+        var result = new CityCreateRequestValidator().Validate(new CityCreateRequest { Name = new string('a', 101) });
 
         Assert.Contains(result.Errors, error => error.ErrorMessage == "City name can have at most 100 characters.");
     }

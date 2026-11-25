@@ -57,7 +57,7 @@ public class AccountAndReviewHttpTests : IAsyncLifetime
         new UserMappingProfile().Register(mappingConfig);
         builder.Services.AddSingleton(mappingConfig);
         builder.Services.AddScoped<IMapper, ServiceMapper>();
-        builder.Services.AddValidatorsFromAssemblyContaining<CityInsertRequestValidator>();
+        builder.Services.AddValidatorsFromAssemblyContaining<CityCreateRequestValidator>();
         builder.Services.AddControllers(options =>
             {
                 options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;

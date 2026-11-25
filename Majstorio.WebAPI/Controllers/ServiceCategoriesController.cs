@@ -37,7 +37,10 @@ public class ServiceCategoriesController : ControllerBase
     [Authorize(Roles = RoleNames.Administrator)]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] ServiceCategoryUpdateRequest request)
-        => _resultMapper.Map(await _serviceCategoryService.UpdateServiceCategoryAsync(id, request));
+    {
+        request.Id = id;
+        return _resultMapper.Map(await _serviceCategoryService.UpdateServiceCategoryAsync(request));
+    }
 
     [Authorize(Roles = RoleNames.Administrator)]
     [HttpDelete("{id:int}")]

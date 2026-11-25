@@ -9,9 +9,9 @@ public interface ICityService
 
     Task<Result<CityResponse>> GetCityByIdAsync(int id);
 
-    Task<Result<CityResponse>> CreateCityAsync(CityInsertRequest request);
+    Task<Result<CityResponse>> CreateCityAsync(CityCreateRequest request);
 
-    Task<Result> UpdateCityAsync(int id, CityUpdateRequest request);
+    Task<Result> UpdateCityAsync(CityUpdateRequest request);
 
     Task<Result> DeleteCityAsync(CityDeleteRequest request);
 }

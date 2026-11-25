@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/user/user.dart';
+import 'package:majstorio_desktop/models/user/user_upsert_request.dart';
 import 'package:majstorio_desktop/providers/user/user_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 
@@ -218,8 +219,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                           onPressed: () async {
                             var isValid = key.currentState?.validate();
                             if (isValid != null && isValid == true) {
-                              var updateDto = User(
-                                id: widget.toUpdate.id,
+                              var request = UserUpsertRequest(
                                 userName: _userName.text,
                                 email: _email.text,
                                 phoneNumber: _phoneNumber.text.trim().isEmpty
@@ -233,7 +233,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                                 role: userRole,
                               );
                               var statusCode = await _userProvider.update(
-                                updateDto,
+                                widget.toUpdate.id,
+                                request,
                               );
                               if (!context.mounted) return;
                               if (statusCode == 200) {

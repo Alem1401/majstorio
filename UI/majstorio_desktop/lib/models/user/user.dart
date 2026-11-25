@@ -2,9 +2,10 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'user.g.dart';
 
-@JsonSerializable()
+// Read only: what is sent is a separate *UpsertRequest.
+@JsonSerializable(createToJson: false)
 class User {
-  int? id;
+  final int id;
   final String userName;
   final String email;
   final String? phoneNumber;
@@ -16,7 +17,7 @@ class User {
   final String? role;
 
   User({
-    this.id,
+    required this.id,
     required this.userName,
     required this.email,
     this.phoneNumber,
@@ -28,6 +29,4 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
-
-  Map<String, dynamic> toJson() => _$UserToJson(this);
 }

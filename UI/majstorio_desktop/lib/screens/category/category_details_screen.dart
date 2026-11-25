@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/category/category.dart';
+import 'package:majstorio_desktop/models/category/category_upsert_request.dart';
 import 'package:majstorio_desktop/providers/category/category_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 
@@ -133,12 +134,8 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                             var isValid = key.currentState?.validate();
                             if (isValid != null && isValid == true) {
                               if (widget.toUpdate != null) {
-                                var updateDto = Category(
-                                  name: _categoryName.text,
-                                  isActive: isActive,
-                                  id: widget.toUpdate!.id,
-                                );
-                                var statusCode = await _categoryProvider.update(updateDto);
+                                var request = CategoryUpsertRequest(name: _categoryName.text, isActive: isActive);
+                                var statusCode = await _categoryProvider.update(widget.toUpdate!.id, request);
                                 if (!context.mounted) return;
                                 if (statusCode == 200) {
                                   Navigator.pop(context, true);
@@ -147,8 +144,8 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                                   showMessage(context, errorMessage("category", statusCode, conflict: "A category with this name already exists."));
                                 }
                               } else {
-                                var newCategory = Category(name: _categoryName.text, isActive: isActive);
-                                var statusCode = await _categoryProvider.post(newCategory);
+                                var request = CategoryUpsertRequest(name: _categoryName.text, isActive: isActive);
+                                var statusCode = await _categoryProvider.post(request);
                                 if (!context.mounted) return;
                                 if (statusCode == 200) {
                                   Navigator.pop(context, true);

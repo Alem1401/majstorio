@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/city/city.dart';
+import 'package:majstorio_desktop/models/city/city_upsert_request.dart';
 import 'package:majstorio_desktop/providers/city/city_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 
@@ -140,8 +141,8 @@ class _CityDetailsScreenState extends State<CityDetailsScreen> {
                             var isValid = key.currentState?.validate();
                             if (isValid != null && isValid == true) {
                               if(widget.toUpdate != null ){
-                                var updateDto = City(name: _cityName.text, isActive: isActive, id:  widget.toUpdate!.id);
-                               var statusCode =  await _cityProvider.update(updateDto);
+                                var request = CityUpsertRequest(name: _cityName.text, isActive: isActive);
+                                var statusCode = await _cityProvider.update(widget.toUpdate!.id, request);
                                if (!context.mounted) return;
                                if (statusCode == 200) {
                                  Navigator.pop(context, true);
@@ -152,8 +153,8 @@ class _CityDetailsScreenState extends State<CityDetailsScreen> {
                                
                               }
                               else{
-                                var newCity = City(name: _cityName.text, isActive: isActive);
-                                 var statusCode = await _cityProvider.post(newCity);
+                                var request = CityUpsertRequest(name: _cityName.text, isActive: isActive);
+                                 var statusCode = await _cityProvider.post(request);
                                  if (!context.mounted) return;
                                  if (statusCode == 200) {
                                    Navigator.pop(context, true);

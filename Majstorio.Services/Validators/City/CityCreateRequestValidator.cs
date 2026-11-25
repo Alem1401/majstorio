@@ -4,9 +4,9 @@ using Majstorio.Services.Database.Configurations;
 
 namespace Majstorio.Services.Validators.City;
 
-public class CityInsertRequestValidator : AbstractValidator<CityInsertRequest>
+public class CityCreateRequestValidator : AbstractValidator<CityCreateRequest>
 {
-    public CityInsertRequestValidator()
+    public CityCreateRequestValidator()
     {
         RuleFor(request => request.Name)
             .NotEmpty().WithMessage("City name is required.")

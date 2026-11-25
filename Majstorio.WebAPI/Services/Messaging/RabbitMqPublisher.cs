@@ -62,19 +62,21 @@ public sealed class RabbitMqPublisher : IMessagePublisher, IAsyncDisposable
         if (_connection != null)
             await _connection.DisposeAsync();
 
-        var factory = new ConnectionFactory
-        {
-            HostName = _configuration["RabbitMq:Host"] ?? throw new InvalidOperationException("RabbitMq__Host is not configured."),
-            Port = int.Parse(_configuration["RabbitMq:Port"] ?? "5672"),
-            UserName = _configuration["RabbitMq:UserName"] ?? throw new InvalidOperationException("RabbitMq__UserName is not configured."),
-            Password = _configuration["RabbitMq:Password"] ?? throw new InvalidOperationException("RabbitMq__Password is not configured."),
-            VirtualHost = _configuration["RabbitMq:VirtualHost"] ?? "/"
-        };
-        _connection = await factory.CreateConnectionAsync();
+        _connection = await CreateFactory(_configuration).CreateConnectionAsync();
         _channel = await _connection.CreateChannelAsync();
         await _channel.ExchangeDeclareAsync(Exchange, ExchangeType.Direct, durable: true);
         return _channel;
     }
+
+    // Also used by NotificationRelay, so the API reads the connection settings in one place.
+    public static ConnectionFactory CreateFactory(IConfiguration configuration) => new()
+    {
+        HostName = configuration["RabbitMq:Host"] ?? throw new InvalidOperationException("RabbitMq__Host is not configured."),
+        Port = int.Parse(configuration["RabbitMq:Port"] ?? "5672"),
+        UserName = configuration["RabbitMq:UserName"] ?? throw new InvalidOperationException("RabbitMq__UserName is not configured."),
+        Password = configuration["RabbitMq:Password"] ?? throw new InvalidOperationException("RabbitMq__Password is not configured."),
+        VirtualHost = configuration["RabbitMq:VirtualHost"] ?? "/"
+    };
 
     public async ValueTask DisposeAsync()
     {

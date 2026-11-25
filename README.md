@@ -8,7 +8,7 @@ The application is under development.
 
 - The database schema is defined through EF Core configurations and created by migrations. The API applies pending migrations and the seed data on startup.
 - The API covers the core flow: registration and login, service requests, offers, accepting an offer with appointment confirmation, completing and cancelling, and the status history. It also has the administrative data: cities, service categories, users, tradesperson profiles, news posts, reviews, the dashboard and the two reports.
-- Not implemented yet: notification endpoints and SignalR, PayPal payment and refund, the recommender, and e-mail delivery of the password reset token.
+- Not implemented yet: PayPal payment and refund, the recommender, and e-mail delivery of the password reset token.
 - The Flutter desktop app is in `UI/majstorio_desktop` (administrators). The Flutter Android app is in `UI/majstorio_mobile` (customers and tradespeople), including ratings and profile editing with a photo.
 
 ## Technologies

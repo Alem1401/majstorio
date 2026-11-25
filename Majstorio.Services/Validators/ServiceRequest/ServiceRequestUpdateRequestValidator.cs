@@ -8,7 +8,6 @@ public class ServiceRequestUpdateRequestValidator : AbstractValidator<ServiceReq
 {
     public ServiceRequestUpdateRequestValidator()
     {
-        RuleFor(request => request.Id).GreaterThan(0);
         RuleFor(request => request.ServiceCategoryId).GreaterThan(0);
         RuleFor(request => request.CityId).GreaterThan(0);
         RuleFor(request => request.Description)

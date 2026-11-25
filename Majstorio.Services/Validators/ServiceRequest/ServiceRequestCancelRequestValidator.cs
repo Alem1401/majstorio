@@ -8,7 +8,6 @@ public class ServiceRequestCancelRequestValidator : AbstractValidator<ServiceReq
 {
     public ServiceRequestCancelRequestValidator()
     {
-        RuleFor(request => request.Id).GreaterThan(0);
         RuleFor(request => request.Reason).MaximumLength(ColumnLengths.LongText);
     }
 }

@@ -8,7 +8,6 @@ public class ReviewUpdateRequestValidator : AbstractValidator<ReviewUpdateReques
 {
     public ReviewUpdateRequestValidator()
     {
-        RuleFor(request => request.Id).GreaterThan(0);
         RuleFor(request => request.AppointmentId).GreaterThan(0);
         RuleFor(request => request.Rating).InclusiveBetween(1, 5);
         RuleFor(request => request.Comment).MaximumLength(ColumnLengths.LongText)

@@ -34,8 +34,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     _notificationProvider = context.read<NotificationProvider>();
+    // A new notification appears while the screen is open.
+    _notificationProvider.changes.addListener(loadNotifications);
     loadNotifications();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _notificationProvider.changes.removeListener(loadNotifications);
+    super.dispose();
   }
 
   Future<void> loadNotifications() async {

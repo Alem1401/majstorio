@@ -34,7 +34,7 @@ public class ServiceCategoryServiceTests : IDisposable
         Assert.True(created.Value.IsActive);
 
         var id = created.Value.Id;
-        Assert.True((await _service.UpdateServiceCategoryAsync(id, new() { Name = "Electrical", IsActive = false })).IsSuccess);
+        Assert.True((await _service.UpdateServiceCategoryAsync(new() { Id = id, Name = "Electrical", IsActive = false })).IsSuccess);
 
         var inactive = (await _service.GetServiceCategoriesAsync(new() { Name = "lect", IsActive = false })).Value!;
         Assert.Equal("Electrical", Assert.Single(inactive.Items).Name);
@@ -52,9 +52,9 @@ public class ServiceCategoryServiceTests : IDisposable
 
         Assert.Equal(ErrorType.Conflict, (await _service.CreateServiceCategoryAsync(new() { Name = "Plumbing" })).ErrorType);
         Assert.Equal(ErrorType.Conflict,
-            (await _service.UpdateServiceCategoryAsync(second.Id, new() { Name = "Plumbing", IsActive = true })).ErrorType);
+            (await _service.UpdateServiceCategoryAsync(new() { Id = second.Id, Name = "Plumbing", IsActive = true })).ErrorType);
         // Saving a category under its own name is allowed.
-        Assert.True((await _service.UpdateServiceCategoryAsync(second.Id, new() { Name = "Electrical", IsActive = true })).IsSuccess);
+        Assert.True((await _service.UpdateServiceCategoryAsync(new() { Id = second.Id, Name = "Electrical", IsActive = true })).IsSuccess);
     }
 
     [Fact]

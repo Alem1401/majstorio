@@ -67,9 +67,9 @@ public class NewsPostService : INewsPostService
         return Result<NewsPostResponse>.Success(_mapper.Map<NewsPostResponse>(newsPost));
     }
 
-    public async Task<Result> UpdateNewsPostAsync(int id, NewsPostUpdateRequest request)
+    public async Task<Result> UpdateNewsPostAsync(NewsPostUpdateRequest request)
     {
-        var newsPost = await _ctx.NewsPosts.FirstOrDefaultAsync(newsPost => newsPost.Id == id);
+        var newsPost = await _ctx.NewsPosts.FirstOrDefaultAsync(newsPost => newsPost.Id == request.Id);
         if (newsPost == null)
             return Result.Failure(ErrorType.NotFound, NotFoundMessage);
 

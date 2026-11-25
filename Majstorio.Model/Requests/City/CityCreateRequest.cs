@@ -1,6 +1,6 @@
 ﻿namespace Majstorio.Model.Requests.City;
 
-public class CityInsertRequest
+public class CityCreateRequest
 {
     public string Name { get; set; } = string.Empty;
 }

@@ -9,7 +9,6 @@ import 'package:majstorio_mobile/providers/category/category_provider.dart';
 import 'package:majstorio_mobile/providers/city/city_provider.dart';
 import 'package:majstorio_mobile/providers/news_post/news_provider.dart';
 import 'package:majstorio_mobile/providers/offer/offer_provider.dart';
-import 'package:majstorio_mobile/providers/review/review_provider.dart';
 import 'package:majstorio_mobile/providers/service_request/service_request_provider.dart';
 import 'package:majstorio_mobile/providers/tradesperson_profile/tradesperson_profile_provider.dart';
 import 'package:majstorio_mobile/screens/login_screen.dart';
@@ -33,7 +32,6 @@ Widget app(Widget screen) {
       ChangeNotifierProvider(create: (ctx) => ServiceRequestProvider()),
       ChangeNotifierProvider(create: (ctx) => OfferProvider()),
       ChangeNotifierProvider(create: (ctx) => AppointmentProvider()),
-        ChangeNotifierProvider(create: (ctx) => ReviewProvider()),
         ChangeNotifierProvider(create: (ctx) => AccountProvider()),
     ],
     child: MaterialApp(theme: AppTheme.light, home: screen),

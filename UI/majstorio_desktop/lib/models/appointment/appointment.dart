@@ -2,7 +2,8 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'appointment.g.dart';
 
-@JsonSerializable()
+// Read only: what is sent is a separate *UpsertRequest.
+@JsonSerializable(createToJson: false)
 class Appointment {
   // The status numbers the API uses for an appointment.
   static const Map<int, String> statusNames = {
@@ -12,7 +13,7 @@ class Appointment {
     3: 'Completed',
   };
 
-  int? id;
+  final int id;
   final int offerId;
   final String customerName;
   final String tradespersonName;
@@ -22,7 +23,7 @@ class Appointment {
   final int status;
 
   Appointment({
-    this.id,
+    required this.id,
     required this.offerId,
     required this.customerName,
     required this.tradespersonName,
@@ -36,6 +37,4 @@ class Appointment {
 
   factory Appointment.fromJson(Map<String, dynamic> json) =>
       _$AppointmentFromJson(json);
-
-  Map<String, dynamic> toJson() => _$AppointmentToJson(this);
 }

@@ -52,7 +52,7 @@ public class CityService : ICityService
         return Result<CityResponse>.Success(_mapper.Map<CityResponse>(city));
     }
 
-    public async Task<Result<CityResponse>> CreateCityAsync(CityInsertRequest request)
+    public async Task<Result<CityResponse>> CreateCityAsync(CityCreateRequest request)
     {
         var name = request.Name.Trim();
         if (await _ctx.Cities.AnyAsync(city => city.Name == name))
@@ -64,14 +64,14 @@ public class CityService : ICityService
         return Result<CityResponse>.Success(_mapper.Map<CityResponse>(city));
     }
 
-    public async Task<Result> UpdateCityAsync(int id, CityUpdateRequest request)
+    public async Task<Result> UpdateCityAsync(CityUpdateRequest request)
     {
-        var city = await _ctx.Cities.FirstOrDefaultAsync(city => city.Id == id);
+        var city = await _ctx.Cities.FirstOrDefaultAsync(city => city.Id == request.Id);
         if (city == null)
             return Result.Failure(ErrorType.NotFound, NotFoundMessage);
 
         var name = request.Name.Trim();
-        if (await _ctx.Cities.AnyAsync(other => other.Name == name && other.Id != id))
+        if (await _ctx.Cities.AnyAsync(other => other.Name == name && other.Id != request.Id))
             return Result.Failure(ErrorType.Conflict, DuplicateMessage);
 
         _mapper.Map(request, city);

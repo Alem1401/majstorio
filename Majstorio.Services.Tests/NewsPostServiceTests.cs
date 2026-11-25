@@ -102,7 +102,7 @@ public class NewsPostServiceTests : IDisposable
         var update = UpdateRequest(stored);
         update.ImageUrl = imageUrl!;
         Assert.True(new NewsPostUpdateRequestValidator().Validate(update).IsValid);
-        Assert.True((await _service.UpdateNewsPostAsync(stored.Id, update)).IsSuccess);
+        Assert.True((await _service.UpdateNewsPostAsync(update)).IsSuccess);
         _ctx.ChangeTracker.Clear();
         Assert.Equal(imageUrl?.Trim() ?? "", (await _ctx.NewsPosts.SingleAsync()).ImageUrl);
     }
@@ -129,7 +129,7 @@ public class NewsPostServiceTests : IDisposable
         update.Title = "  Edited title  ";
         update.Content = "  Edited content  ";
         update.ImageUrl = "  https://example.com/edited.jpg  ";
-        Assert.True((await _service.UpdateNewsPostAsync(post.Id, update)).IsSuccess);
+        Assert.True((await _service.UpdateNewsPostAsync(update)).IsSuccess);
         _ctx.ChangeTracker.Clear();
 
         var response = await _service.GetNewsPostByIdAsync(post.Id);
@@ -155,7 +155,7 @@ public class NewsPostServiceTests : IDisposable
         var request = UpdateRequest(post);
         request.Title = "Changed title";
 
-        Assert.True((await _service.UpdateNewsPostAsync(post.Id, request)).IsSuccess);
+        Assert.True((await _service.UpdateNewsPostAsync(request)).IsSuccess);
         _ctx.ChangeTracker.Clear();
         var stored = await _ctx.NewsPosts.SingleAsync();
         Assert.Equal(author.Id, stored.AuthorId);
@@ -230,7 +230,7 @@ public class NewsPostServiceTests : IDisposable
     {
         Assert.Equal(ErrorType.NotFound, (await _service.GetNewsPostByIdAsync(999)).ErrorType);
         Assert.Equal(ErrorType.NotFound,
-            (await _service.UpdateNewsPostAsync(999, new())).ErrorType);
+            (await _service.UpdateNewsPostAsync(new() { Id = 999 })).ErrorType);
         Assert.Equal(ErrorType.NotFound,
             (await _service.DeleteNewsPostAsync(new() { Id = 999 })).ErrorType);
     }
@@ -248,6 +248,7 @@ public class NewsPostServiceTests : IDisposable
 
     private static NewsPostUpdateRequest UpdateRequest(NewsPost post) => new()
     {
+        Id = post.Id,
         Title = post.Title,
         Content = post.Content, ImageUrl = post.ImageUrl
     };

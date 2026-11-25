@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/review/review.dart';
+import 'package:majstorio_desktop/models/review/review_upsert_request.dart';
 import 'package:majstorio_desktop/providers/review/review_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 import 'package:majstorio_desktop/widgets/dialogs.dart';
@@ -42,16 +43,12 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
     if (_formKey.currentState?.validate() != true) return;
 
     var comment = _commentController.text.trim();
-    var review = Review(
-      id: widget.toUpdate.id,
+    var request = ReviewUpsertRequest(
       appointmentId: widget.toUpdate.appointmentId,
-      customerName: widget.toUpdate.customerName,
-      tradespersonName: widget.toUpdate.tradespersonName,
       rating: int.parse(_ratingController.text.trim()),
       comment: comment.isEmpty ? null : comment,
-      createdAtUtc: widget.toUpdate.createdAtUtc,
     );
-    var statusCode = await _provider.update(review);
+    var statusCode = await _provider.update(widget.toUpdate.id, request);
     if (!mounted) return;
     if (statusCode == 200) {
       showMessage(context, "The review was updated.");

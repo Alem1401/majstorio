@@ -22,6 +22,7 @@ public class ReviewMappingProfile : IRegister
             .Ignore(destination => destination.Customer);
 
         config.NewConfig<ReviewUpdateRequest, Review>()
+            .Ignore(destination => destination.Id)
             .Ignore(destination => destination.CreatedAtUtc)
             .Ignore(destination => destination.TradespersonProfileId)
             .Ignore(destination => destination.CustomerId)

@@ -2,9 +2,10 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'review.g.dart';
 
-@JsonSerializable()
+// Read only: what is sent is a separate *UpsertRequest.
+@JsonSerializable(createToJson: false)
 class Review {
-  int? id;
+  final int id;
   final int appointmentId;
   final String customerName;
   final String tradespersonName;
@@ -13,7 +14,7 @@ class Review {
   final DateTime createdAtUtc;
 
   Review({
-    this.id,
+    required this.id,
     required this.appointmentId,
     required this.customerName,
     required this.tradespersonName,
@@ -23,6 +24,4 @@ class Review {
   });
 
   factory Review.fromJson(Map<String, dynamic> json) => _$ReviewFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ReviewToJson(this);
 }

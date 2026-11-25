@@ -7,7 +7,6 @@ public class OfferUpdateRequestValidator : AbstractValidator<OfferUpdateRequest>
 {
     public OfferUpdateRequestValidator()
     {
-        RuleFor(request => request.Id).GreaterThan(0);
         RuleFor(request => request.Price).GreaterThan(0).PrecisionScale(18, 2, true);
         RuleFor(request => request.ProposedStartUtc)
             .Cascade(CascadeMode.Stop)

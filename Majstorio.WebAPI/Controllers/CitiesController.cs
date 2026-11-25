@@ -31,13 +31,16 @@ public class CitiesController : ControllerBase
 
     [Authorize(Roles = RoleNames.Administrator)]
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CityInsertRequest request)
+    public async Task<IActionResult> Create([FromBody] CityCreateRequest request)
         => _resultMapper.Map(await _cityService.CreateCityAsync(request));
 
     [Authorize(Roles = RoleNames.Administrator)]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] CityUpdateRequest request)
-        => _resultMapper.Map(await _cityService.UpdateCityAsync(id, request));
+    {
+        request.Id = id;
+        return _resultMapper.Map(await _cityService.UpdateCityAsync(request));
+    }
 
     [Authorize(Roles = RoleNames.Administrator)]
     [HttpDelete("{id:int}")]

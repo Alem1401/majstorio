@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:majstorio_desktop/layouts/master_screen.dart';
 
 import 'package:majstorio_desktop/models/news_post/news_post.dart';
+import 'package:majstorio_desktop/models/news_post/news_post_upsert_request.dart';
 import 'package:majstorio_desktop/providers/news_post/news_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 import 'package:majstorio_desktop/widgets/dialogs.dart';
@@ -51,18 +52,16 @@ class _NewsPostDetailsScreenState extends State<NewsPostDetailsScreen> {
   Future<void> _save() async {
     if (_formKey.currentState?.validate() != true) return;
 
-    var newsPost = NewsPost(
-      id: widget.post?.id,
+    var request = NewsPostUpsertRequest(
       title: _headlineController.text,
       content: _contentController.text,
       imageUrl: _imageController.text,
-      publishedAtUtc: DateTime.now().toUtc(),
     );
     final int response;
     if (widget.post != null) {
-      response = await _provider.update(newsPost);
+      response = await _provider.update(widget.post!.id, request);
     } else {
-      response = await _provider.post(newsPost);
+      response = await _provider.post(request);
     }
     if (!mounted) return;
     if (response == 200) {

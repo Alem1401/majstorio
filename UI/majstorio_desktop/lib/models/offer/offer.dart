@@ -2,7 +2,8 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'offer.g.dart';
 
-@JsonSerializable()
+// Read only: what is sent is a separate *UpsertRequest.
+@JsonSerializable(createToJson: false)
 class Offer {
   // The status numbers the API uses for an offer.
   static const int pending = 0;
@@ -14,7 +15,7 @@ class Offer {
     4: 'Closed',
   };
 
-  int? id;
+  final int id;
   final String customerName;
   final String tradespersonName;
   final String serviceCategoryName;
@@ -24,7 +25,7 @@ class Offer {
   final int status;
 
   Offer({
-    this.id,
+    required this.id,
     required this.customerName,
     required this.tradespersonName,
     required this.serviceCategoryName,
@@ -37,6 +38,4 @@ class Offer {
   String get statusName => statusNames[status] ?? 'Unknown';
 
   factory Offer.fromJson(Map<String, dynamic> json) => _$OfferFromJson(json);
-
-  Map<String, dynamic> toJson() => _$OfferToJson(this);
 }

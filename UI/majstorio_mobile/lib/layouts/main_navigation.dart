@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_mobile/models/auth/auth_session.dart';
+import 'package:majstorio_mobile/providers/notification/live_notifications.dart';
 import 'package:majstorio_mobile/providers/notification/notification_provider.dart';
 import 'package:majstorio_mobile/screens/account/account_screen.dart';
 import 'package:majstorio_mobile/screens/appointment/appointments_screen.dart';
@@ -53,15 +54,30 @@ class _MainNavigationState extends State<MainNavigation> {
   // The number on the bell in the bottom bar.
   var unreadCount = 0;
 
+  late NotificationProvider _notificationProvider;
+  late LiveNotifications _liveNotifications;
+
+  // The shell exists while the user is signed in, so the live connection lives as long as it does.
   @override
   void initState() {
-    loadUnreadCount();
     super.initState();
+    _notificationProvider = context.read<NotificationProvider>();
+    _notificationProvider.changes.addListener(loadUnreadCount);
+    _liveNotifications = LiveNotifications(() => _notificationProvider.changes.value++);
+    _liveNotifications.start();
+    loadUnreadCount();
+  }
+
+  @override
+  void dispose() {
+    _liveNotifications.stop();
+    _notificationProvider.changes.removeListener(loadUnreadCount);
+    super.dispose();
   }
 
   Future<void> loadUnreadCount() async {
     try {
-      var count = await context.read<NotificationProvider>().getUnreadCount();
+      var count = await _notificationProvider.getUnreadCount();
       if (!mounted) return;
       setState(() {
         unreadCount = count;

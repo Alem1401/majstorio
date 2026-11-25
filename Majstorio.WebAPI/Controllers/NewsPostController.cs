@@ -38,7 +38,10 @@ public class NewsPostController : ControllerBase
     [Authorize(Roles = RoleNames.Administrator)]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] NewsPostUpdateRequest request)
-        => _resultMapper.Map(await _newsPostService.UpdateNewsPostAsync(id, request));
+    {
+        request.Id = id;
+        return _resultMapper.Map(await _newsPostService.UpdateNewsPostAsync(request));
+    }
 
     [Authorize(Roles = RoleNames.Administrator)]
     [HttpDelete("{id:int}")]

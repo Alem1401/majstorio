@@ -9,7 +9,6 @@ public class UserUpdateRequestValidator : AbstractValidator<UserUpdateRequest>
 {
     public UserUpdateRequestValidator()
     {
-        RuleFor(request => request.Id).GreaterThan(0);
         RuleFor(request => request.UserName)
             .NotEmpty().WithMessage("User name is required.")
             .MaximumLength(ColumnLengths.Name)

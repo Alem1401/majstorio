@@ -1,13 +1,10 @@
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:majstorio_mobile/constants.dart';
-import 'package:majstorio_mobile/models/appointment/appointment.dart';
 import 'package:majstorio_mobile/models/auth/auth_session.dart';
-import 'package:majstorio_mobile/models/service_request/service_request.dart';
 import 'package:majstorio_mobile/providers/account/account_provider.dart';
 import 'package:majstorio_mobile/providers/appointment/appointment_provider.dart';
 import 'package:majstorio_mobile/providers/auth/auth_provider.dart';
@@ -16,19 +13,16 @@ import 'package:majstorio_mobile/providers/category/category_provider.dart';
 import 'package:majstorio_mobile/providers/city/city_provider.dart';
 import 'package:majstorio_mobile/providers/news_post/news_provider.dart';
 import 'package:majstorio_mobile/providers/offer/offer_provider.dart';
-import 'package:majstorio_mobile/providers/review/review_provider.dart';
 import 'package:majstorio_mobile/providers/service_request/service_request_provider.dart';
 import 'package:majstorio_mobile/providers/tradesperson_profile/tradesperson_profile_provider.dart';
 import 'package:majstorio_mobile/screens/account/account_screen.dart';
 import 'package:majstorio_mobile/screens/account/profile_edit_screen.dart';
-import 'package:majstorio_mobile/screens/review/review_form_screen.dart';
-import 'package:majstorio_mobile/screens/service_request/service_request_details_screen.dart';
 import 'package:majstorio_mobile/theme/app_theme.dart';
 import 'package:majstorio_mobile/utils/validators.dart' as validate;
 import 'package:majstorio_mobile/widgets/common.dart';
 import 'package:provider/provider.dart';
 
-import 'account_and_review_test.dart' show completedDetail, profileJson, reviewJson;
+import 'account_and_review_test.dart' show profileJson;
 import 'screens_test.dart' show app, signInAs;
 import 'test_data.dart';
 
@@ -44,7 +38,6 @@ Widget appWithLogin(Widget screen) {
       ChangeNotifierProvider(create: (ctx) => ServiceRequestProvider()),
       ChangeNotifierProvider(create: (ctx) => OfferProvider()),
       ChangeNotifierProvider(create: (ctx) => AppointmentProvider()),
-      ChangeNotifierProvider(create: (ctx) => ReviewProvider()),
       ChangeNotifierProvider(create: (ctx) => AccountProvider()),
     ],
     child: MaterialApp(
@@ -83,16 +76,6 @@ class _HostState extends State<_Host> {
   }
 }
 
-Appointment completedAppointment() => Appointment.fromJson(appointmentJson(status: Appointment.completed));
-
-Future<void> chooseStarAndSend(WidgetTester tester, {int stars = 5, String? comment}) async {
-  await tester.tap(find.byTooltip('$stars od 5'));
-  if (comment != null) await tester.enterText(find.byType(TextField), comment);
-  await tester.tap(find.text('Pošalji ocjenu'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Da'));
-}
-
 Finder fieldWithLabel(String label) => find.widgetWithText(TextFormField, label);
 
 Future<void> tapSave(WidgetTester tester) async {
@@ -104,223 +87,6 @@ Future<void> tapSave(WidgetTester tester) async {
 void main() {
   setUp(() {
     AuthSession.clear();
-  });
-
-  // ---------------- review form ----------------
-
-  group('review form', () {
-    testWidgets('star taps change the label', (tester) async {
-      signInAs(AuthSession.customer);
-      FakeApi((request) => http.Response('', 200));
-      await tester.pumpWidget(app(ReviewFormScreen(appointment: completedAppointment())));
-
-      expect(find.text('Dodirnite zvjezdicu'), findsOneWidget);
-      await tester.tap(find.byTooltip('3 od 5'));
-      await tester.pump();
-      expect(find.text('Dobro'), findsOneWidget);
-      expect(find.byIcon(Icons.star), findsNWidgets(3));
-      await tester.tap(find.byTooltip('1 od 5'));
-      await tester.pump();
-      expect(find.text('Loše'), findsOneWidget);
-      expect(find.byIcon(Icons.star), findsNWidgets(1));
-    });
-
-    testWidgets('whitespace-only comment sends no "comment" key', (tester) async {
-      signInAs(AuthSession.customer);
-      var api = FakeApi((request) => http.Response('', 200));
-      await tester.pumpWidget(app(ReviewFormScreen(appointment: completedAppointment())));
-
-      await chooseStarAndSend(tester, stars: 2, comment: '   \n  ');
-      await tester.pumpAndSettle();
-
-      expect(api.calls.single.body, '{"appointmentId":7,"rating":2}');
-    });
-
-    testWidgets('comment is trimmed before sending', (tester) async {
-      signInAs(AuthSession.customer);
-      var api = FakeApi((request) => http.Response('', 200));
-      await tester.pumpWidget(app(ReviewFormScreen(appointment: completedAppointment())));
-
-      await chooseStarAndSend(tester, stars: 4, comment: '  Uredno  ');
-      await tester.pumpAndSettle();
-
-      expect(api.calls.single.body, '{"appointmentId":7,"rating":4,"comment":"Uredno"}');
-    });
-
-    testWidgets('while the rating is being sent, another tap on the button sends nothing', (tester) async {
-      signInAs(AuthSession.customer);
-      var calls = <http.Request>[];
-      var answer = Completer<http.Response>();
-      BaseProvider.client = MockClient((request) {
-        calls.add(request);
-        return answer.future;
-      });
-      await tester.pumpWidget(app(ReviewFormScreen(appointment: completedAppointment())));
-
-      await chooseStarAndSend(tester);
-      await tester.pump();
-      expect(find.text('Slanje...'), findsOneWidget);
-      // Let the confirmation finish closing, then tap the disabled button again.
-      await tester.pump(const Duration(seconds: 1));
-      await tester.tap(find.text('Slanje...'), warnIfMissed: false);
-      await tester.pump(const Duration(seconds: 1));
-      expect(find.text('Da'), findsNothing);
-
-      answer.complete(http.Response('', 200));
-      await tester.pumpAndSettle();
-      expect(calls, hasLength(1));
-    });
-
-    testWidgets('a quick double tap on "Pošalji ocjenu" opens only one confirmation', (tester) async {
-      signInAs(AuthSession.customer);
-      var api = FakeApi((request) => http.Response('', 200));
-      await tester.pumpWidget(app(ReviewFormScreen(appointment: completedAppointment())));
-      await tester.tap(find.byTooltip('5 od 5'));
-      await tester.pump();
-
-      // Two taps within the same frame, before the dialog is drawn.
-      await tester.tap(find.text('Pošalji ocjenu'));
-      await tester.tap(find.text('Pošalji ocjenu'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Da'), findsOneWidget);
-      await tester.tap(find.text('Da').last);
-      await tester.pumpAndSettle();
-      expect(api.calls, hasLength(1));
-    });
-
-    testWidgets('409 shows the server message and goes back with true', (tester) async {
-      signInAs(AuthSession.customer);
-      FakeApi((request) => jsonResponse({'message': 'A review already exists for this appointment.'}, 409));
-      await tester.pumpWidget(app(_Host(ReviewFormScreen(appointment: completedAppointment()))));
-      await tester.tap(find.text('OPEN'));
-      await tester.pumpAndSettle();
-
-      await chooseStarAndSend(tester);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(ReviewFormScreen), findsNothing);
-      expect(find.text('popped: true'), findsOneWidget);
-      expect(find.text('A review already exists for this appointment.'), findsOneWidget);
-    });
-
-    testWidgets('400 shows the message and stays on the form, ready to try again', (tester) async {
-      signInAs(AuthSession.customer);
-      var api = FakeApi((request) => jsonResponse({
-            'errors': {
-              'Comment': ['Comment can have at most 2000 characters.'],
-            },
-          }, 400));
-      await tester.pumpWidget(app(_Host(ReviewFormScreen(appointment: completedAppointment()))));
-      await tester.tap(find.text('OPEN'));
-      await tester.pumpAndSettle();
-
-      await chooseStarAndSend(tester, comment: 'x');
-      await tester.pumpAndSettle();
-
-      expect(find.byType(ReviewFormScreen), findsOneWidget);
-      expect(find.text('Comment can have at most 2000 characters.'), findsOneWidget);
-      expect(find.text('Pošalji ocjenu'), findsOneWidget);
-      expect(api.calls, hasLength(1));
-    });
-  });
-
-  // ---------------- request details: rating section ----------------
-
-  group('rating section on the request', () {
-    testWidgets('not shown for a cancelled appointment', (tester) async {
-      signInAs(AuthSession.customer);
-      var api = FakeApi((request) => jsonResponse(requestDetailJson(
-            status: ServiceRequest.cancelled,
-            offers: [offerJson(id: 1, status: 1)],
-            appointment: appointmentJson(status: Appointment.cancelled),
-          )));
-
-      await tester.pumpWidget(app(const ServiceRequestDetailsScreen(requestId: 10)));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Vaša ocjena'), findsNothing);
-      expect(find.text('Ocijeni majstora'), findsNothing);
-      expect(api.calls.where((call) => call.url.path == '/Reviews/mine'), isEmpty);
-    });
-
-    testWidgets('not shown to another customer of a completed job', (tester) async {
-      signInAs(AuthSession.customer, userId: 99);
-      var api = FakeApi((request) => jsonResponse(completedDetail()));
-
-      await tester.pumpWidget(app(const ServiceRequestDetailsScreen(requestId: 10)));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Vaša ocjena'), findsNothing);
-      expect(api.calls.where((call) => call.url.path == '/Reviews/mine'), isEmpty);
-    });
-
-    testWidgets('not shown to an administrator whose id equals the customer id', (tester) async {
-      signInAs(AuthSession.administrator, userId: 5);
-      var api = FakeApi((request) => jsonResponse(completedDetail()));
-
-      await tester.pumpWidget(app(const ServiceRequestDetailsScreen(requestId: 10)));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Vaša ocjena'), findsNothing);
-      expect(api.calls.where((call) => call.url.path == '/Reviews/mine'), isEmpty);
-    });
-
-    testWidgets('a review load error shows retry, and retry loads it', (tester) async {
-      signInAs(AuthSession.customer);
-      var failReviews = true;
-      var api = FakeApi((request) {
-        if (request.url.path == '/Reviews/mine') {
-          return failReviews ? jsonResponse({'message': 'Pala baza.'}, 500) : jsonResponse(page([reviewJson()]));
-        }
-        return jsonResponse(completedDetail());
-      });
-
-      await tester.pumpWidget(app(const ServiceRequestDetailsScreen(requestId: 10)));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('Pokušaj ponovo'), 300, scrollable: find.byType(Scrollable).first);
-      expect(find.text('Pala baza.'), findsOneWidget);
-
-      failReviews = false;
-      await tester.ensureVisible(find.text('Pokušaj ponovo'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Pokušaj ponovo'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Pokušaj ponovo'), findsNothing);
-      expect(find.text('4/5'), findsOneWidget);
-      expect(api.calls.where((call) => call.url.path == '/Reviews/mine'), hasLength(2));
-      expect(api.calls.last.url.queryParameters['pageSize'], '1');
-    });
-
-    testWidgets('after rating, the section shows the stars instead of the button', (tester) async {
-      signInAs(AuthSession.customer);
-      var rated = false;
-      var api = FakeApi((request) {
-        if (request.url.path == '/Reviews/mine' && request.method == 'POST') {
-          rated = true;
-          return http.Response('', 200);
-        }
-        if (request.url.path == '/Reviews/mine') {
-          return jsonResponse(page(rated ? [{...reviewJson(), 'rating': 5, 'comment': null}] : []));
-        }
-        return jsonResponse(completedDetail());
-      });
-
-      await tester.pumpWidget(app(const ServiceRequestDetailsScreen(requestId: 10)));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('Ocijeni majstora'), 300, scrollable: find.byType(Scrollable).first);
-      await tester.tap(find.text('Ocijeni majstora'));
-      await tester.pumpAndSettle();
-
-      await chooseStarAndSend(tester);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(ReviewFormScreen), findsNothing);
-      await tester.scrollUntilVisible(find.text('5/5'), 300, scrollable: find.byType(Scrollable).first);
-      expect(find.text('Ocijeni majstora'), findsNothing);
-      expect(api.calls.where((call) => call.method == 'POST'), hasLength(1));
-    });
   });
 
   // ---------------- profile edit ----------------
@@ -610,26 +376,6 @@ void main() {
         expect(await AuthProvider().logout(), expected, reason: 'status $status');
         expect(AuthSession.isLoggedIn, isFalse, reason: 'status $status');
       }
-    });
-
-    test('ReviewProvider.getForAppointment asks for one review of that appointment', () async {
-      AuthSession.token = 'abc';
-      var api = FakeApi((request) => jsonResponse(page([])));
-
-      expect(await ReviewProvider().getForAppointment(42), isNull);
-      expect(api.calls.single.url.path, '/Reviews/mine');
-      expect(api.calls.single.url.queryParameters, containsPair('appointmentId', '42'));
-      expect(api.calls.single.url.queryParameters, containsPair('pageSize', '1'));
-    });
-
-    test('ReviewProvider.insert omits a null or empty comment', () async {
-      AuthSession.token = 'abc';
-      var api = FakeApi((request) => http.Response('', 200));
-
-      await ReviewProvider().insert(1, 3, null);
-      await ReviewProvider().insert(1, 3, '');
-
-      expect(api.calls.map((call) => call.body), everyElement('{"appointmentId":1,"rating":3}'));
     });
 
     test('AccountProvider.deletePhoto is a DELETE with the token', () async {

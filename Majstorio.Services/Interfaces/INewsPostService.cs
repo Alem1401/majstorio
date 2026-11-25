@@ -12,7 +12,7 @@ public interface INewsPostService
     // The author is the signed-in user, read from the token by the controller.
     Task<Result<NewsPostResponse>> CreateNewsPostAsync(int authorId, NewsPostCreateRequest request);
 
-    Task<Result> UpdateNewsPostAsync(int id, NewsPostUpdateRequest request);
+    Task<Result> UpdateNewsPostAsync(NewsPostUpdateRequest request);
 
     Task<Result> DeleteNewsPostAsync(NewsPostDeleteRequest request);
 }

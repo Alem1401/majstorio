@@ -41,7 +41,18 @@ public static class JwtAuthenticationExtensions
                     NameClaimType = JwtClaimNames.UserName,
                     RoleClaimType = JwtClaimNames.Role
                 };
-                bearer.Events = new JwtBearerEvents { OnTokenValidated = RejectOutdatedTokenAsync };
+                bearer.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = RejectOutdatedTokenAsync,
+                    // The hub connection cannot send an Authorization header, so its token comes in the query string.
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                            context.Token = token;
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
         services.AddAuthorization();

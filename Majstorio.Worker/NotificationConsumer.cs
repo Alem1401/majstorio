@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Majstorio.Model.Messages;
 using Majstorio.Services.Database;
@@ -12,6 +13,8 @@ public sealed class NotificationConsumer : BackgroundService
 {
     // Must match the routing key the API publishes with.
     private const string RoutingKey = "notification";
+    // The API listens for this one and tells the phone of that user.
+    private const string CreatedRoutingKey = "notification.created";
     private const int MaxAttempts = 5;
 
     private readonly IConfiguration _configuration;
@@ -75,7 +78,10 @@ public sealed class NotificationConsumer : BackgroundService
             {
                 try
                 {
-                    await SaveNotificationAsync(delivery.Body.ToArray());
+                    var userId = await SaveNotificationAsync(delivery.Body.ToArray());
+                    // Tell the API who has a new notification; the body is only the user id.
+                    await channel.BasicPublishAsync(exchange, CreatedRoutingKey,
+                        Encoding.UTF8.GetBytes(userId.ToString()), stoppingToken);
                     // Tell RabbitMQ the message is done, so it can delete it.
                     await channel.BasicAckAsync(delivery.DeliveryTag, multiple: false, stoppingToken);
                     return;
@@ -104,7 +110,7 @@ public sealed class NotificationConsumer : BackgroundService
     }
 
     // The actual work: one Notification row per message.
-    private async Task SaveNotificationAsync(byte[] body)
+    private async Task<int> SaveNotificationAsync(byte[] body)
     {
         var message = JsonSerializer.Deserialize<NotificationMessage>(body)
             ?? throw new InvalidOperationException("The message is empty.");
@@ -115,7 +121,7 @@ public sealed class NotificationConsumer : BackgroundService
 
         // A message delivered again (the worker stopped before its ack) was already saved.
         if (await ctx.Notifications.AnyAsync(notification => notification.EventId == message.EventId))
-            return;
+            return message.UserId;
 
         ctx.Notifications.Add(new Notification
         {
@@ -127,6 +133,7 @@ public sealed class NotificationConsumer : BackgroundService
         });
         await ctx.SaveChangesAsync();
         _logger.LogInformation("Created notification for user {UserId}.", message.UserId);
+        return message.UserId;
     }
 
     private string Setting(string key)

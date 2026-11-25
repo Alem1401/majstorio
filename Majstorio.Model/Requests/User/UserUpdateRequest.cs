@@ -1,8 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace Majstorio.Model.Requests.User;
 
 public class UserUpdateRequest
 {
-    // Set from the route (PUT /Users/{id}); a value in the body is overwritten.
+    // Filled in by the controller from the route (PUT /Users/{id}).
+    // [JsonIgnore]: an id sent in the body is never read, so the client cannot pick another record.
+    [JsonIgnore]
     public int Id { get; set; }
     public string UserName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;

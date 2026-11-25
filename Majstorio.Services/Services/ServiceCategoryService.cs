@@ -66,14 +66,14 @@ public class ServiceCategoryService : IServiceCategoryService
         return Result<ServiceCategoryResponse>.Success(_mapper.Map<ServiceCategoryResponse>(category));
     }
 
-    public async Task<Result> UpdateServiceCategoryAsync(int id, ServiceCategoryUpdateRequest request)
+    public async Task<Result> UpdateServiceCategoryAsync(ServiceCategoryUpdateRequest request)
     {
-        var category = await _ctx.ServiceCategories.FirstOrDefaultAsync(category => category.Id == id);
+        var category = await _ctx.ServiceCategories.FirstOrDefaultAsync(category => category.Id == request.Id);
         if (category == null)
             return Result.Failure(ErrorType.NotFound, NotFoundMessage);
 
         var name = request.Name.Trim();
-        if (await _ctx.ServiceCategories.AnyAsync(other => other.Name == name && other.Id != id))
+        if (await _ctx.ServiceCategories.AnyAsync(other => other.Name == name && other.Id != request.Id))
             return Result.Failure(ErrorType.Conflict, DuplicateMessage);
 
         _mapper.Map(request, category);

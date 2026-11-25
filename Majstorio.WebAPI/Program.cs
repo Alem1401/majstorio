@@ -6,12 +6,14 @@ using Majstorio.Services.Services;
 using Majstorio.Services.Mapping;
 using Majstorio.Services.Validators.City;
 using Majstorio.WebAPI.Filters;
+using Majstorio.WebAPI.Hubs;
 using Majstorio.WebAPI.Handlers;
 using Majstorio.WebAPI.Services;
 using Majstorio.WebAPI.Services.Auth;
 using Majstorio.WebAPI.Services.Messaging;
 using Mapster;
 using MapsterMapper;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -38,7 +40,7 @@ new NotificationMappingProfile().Register(mappingConfig);
 builder.Services.AddSingleton(mappingConfig);
 builder.Services.AddScoped<IMapper, ServiceMapper>();
 
-builder.Services.AddValidatorsFromAssemblyContaining<CityInsertRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CityCreateRequestValidator>();
 builder.Services.AddOpenApi();
 builder.Services.AddControllers(options =>
 {
@@ -66,6 +68,9 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
 builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>();
+builder.Services.AddHostedService<NotificationRelay>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -85,6 +90,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 if (app.Environment.IsDevelopment())
 {

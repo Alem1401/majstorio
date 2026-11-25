@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System.Reflection;
 using FluentValidation;
 using Majstorio.Model.Requests.City;
@@ -10,7 +11,7 @@ namespace Majstorio.Services.Tests;
 
 public class RequestValidatorTests
 {
-    public static IEnumerable<object[]> RequestTypes() => typeof(CityInsertRequest).Assembly.GetTypes()
+    public static IEnumerable<object[]> RequestTypes() => typeof(CityCreateRequest).Assembly.GetTypes()
         .Where(type => type.IsClass && type.Namespace?.StartsWith("Majstorio.Model.Requests.") == true)
         .Select(type => new object[] { type });
 
@@ -55,8 +56,10 @@ public class RequestValidatorTests
     public void RequestIds_RejectZeroAndNegativeValues(Type requestType)
     {
         var validator = CreateValidator(requestType);
+        // A [JsonIgnore] id comes from the route and is set by the controller after validation.
         var idFields = requestType.GetProperties().Where(property =>
-            property.PropertyType == typeof(int) && property.Name.EndsWith("Id"));
+            property.PropertyType == typeof(int) && property.Name.EndsWith("Id")
+            && property.GetCustomAttribute<JsonIgnoreAttribute>() == null);
 
         foreach (var property in idFields)
         {
@@ -108,7 +111,7 @@ public class RequestValidatorTests
     {
         // Uses the same assembly scanner as the API's AddValidatorsFromAssemblyContaining registration.
         var registration = Assert.Single(
-            AssemblyScanner.FindValidatorsInAssembly(typeof(CityInsertRequestValidator).Assembly),
+            AssemblyScanner.FindValidatorsInAssembly(typeof(CityCreateRequestValidator).Assembly),
             result => result.InterfaceType == typeof(IValidator<>).MakeGenericType(requestType));
         return (IValidator)Activator.CreateInstance(registration.ValidatorType)!;
     }

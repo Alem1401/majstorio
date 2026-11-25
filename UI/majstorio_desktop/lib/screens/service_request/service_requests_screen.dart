@@ -72,8 +72,8 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
     var categories = await context.read<CategoryProvider>().get(CategorySearchRequest(pageSize: 100));
     if (!mounted) return;
     setState(() {
-      cityNames = {for (var city in cities.items) city.id!: city.name};
-      categoryNames = {for (var category in categories.items) category.id!: category.name};
+      cityNames = {for (var city in cities.items) city.id: city.name};
+      categoryNames = {for (var category in categories.items) category.id: category.name};
     });
   }
 

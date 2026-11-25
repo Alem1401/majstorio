@@ -7,6 +7,5 @@ public class TradespersonProfileActiveRequestValidator : AbstractValidator<Trade
 {
     public TradespersonProfileActiveRequestValidator()
     {
-        RuleFor(request => request.Id).GreaterThan(0);
     }
 }

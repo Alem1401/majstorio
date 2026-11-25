@@ -1,6 +1,7 @@
+// A news post as the API returns it. Mirrors NewsPostResponse on the backend.
 class NewsPost {
-  int? id;
-  // Filled when the post comes from the API. It is never sent: the server takes the author from the token.
+  final int id;
+  // The server sets the author from the token; it is never sent.
   final int? authorId;
   final String title;
   final String content;
@@ -8,22 +9,13 @@ class NewsPost {
   final DateTime publishedAtUtc;
 
   NewsPost({
-    this.id,
+    required this.id,
     this.authorId,
     required this.title,
     required this.content,
     required this.imageUrl,
     required this.publishedAtUtc,
   });
-
-  Map<String, dynamic> toJson() {
-    var json = {
-      "title": title,
-      "content": content,
-      "imageUrl": imageUrl,
-    };
-    return json;
-  }
 
   factory NewsPost.fromJson(Map<String, dynamic> json) {
     return NewsPost(
