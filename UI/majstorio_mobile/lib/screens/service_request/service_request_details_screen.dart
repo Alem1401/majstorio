@@ -3,14 +3,17 @@ import 'package:majstorio_mobile/layouts/master_screen.dart';
 import 'package:majstorio_mobile/models/appointment/appointment.dart';
 import 'package:majstorio_mobile/models/auth/auth_session.dart';
 import 'package:majstorio_mobile/models/offer/offer.dart';
+import 'package:majstorio_mobile/models/payment/payment_checkout.dart';
 import 'package:majstorio_mobile/models/reviews/review.dart';
 import 'package:majstorio_mobile/models/service_request/service_request.dart';
 import 'package:majstorio_mobile/providers/appointment/appointment_provider.dart';
 import 'package:majstorio_mobile/providers/offer/offer_provider.dart';
+import 'package:majstorio_mobile/providers/payment/payment_provider.dart';
 import 'package:majstorio_mobile/providers/review/review_provider.dart';
 import 'package:majstorio_mobile/providers/service_request/service_request_provider.dart';
 import 'package:majstorio_mobile/screens/offer/offer_details_screen.dart';
 import 'package:majstorio_mobile/screens/offer/offers_compare_screen.dart';
+import 'package:majstorio_mobile/screens/payment/paypal_screen.dart';
 import 'package:majstorio_mobile/screens/review/review_form.dart';
 import 'package:majstorio_mobile/screens/service_request/service_request_form_screen.dart';
 import 'package:majstorio_mobile/theme/app_theme.dart';
@@ -38,6 +41,7 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
   late OfferProvider _offerProvider;
   late AppointmentProvider _appointmentProvider;
   late ReviewProvider _reviewProvider;
+  late PaymentProvider _paymentProvider;
 
   // The rating of the completed job; null when it is not rated yet.
   ReviewResponse? review;
@@ -56,6 +60,7 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
     _offerProvider = context.read<OfferProvider>();
     _appointmentProvider = context.read<AppointmentProvider>();
     _reviewProvider = context.read<ReviewProvider>();
+    _paymentProvider = context.read<PaymentProvider>();
     _serviceRequestProvider.addListener(loadDetail);
     _offerProvider.addListener(loadDetail);
     _appointmentProvider.addListener(loadDetail);
@@ -212,6 +217,31 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
     );
     if (!confirmed) return;
     await runAction(() => _offerProvider.withdraw(offer.id), "Ponuda je povučena.");
+  }
+
+  // Confirm, approve on the PayPal page inside the app, then the API captures the payment.
+  void payAppointment(ServiceRequestDetail detail) async {
+    var price = detail.acceptedOffer?.price ?? 0;
+    var confirmed = await showConfirmDialog(context, "Platiti ${formatMoney(price)} putem PayPala?", title: "Plaćanje");
+    if (!confirmed || !mounted) return;
+
+    PaymentCheckout checkout;
+    try {
+      checkout = await _paymentProvider.start(detail.appointment!.id);
+    } catch (e) {
+      if (mounted) showMessage(context, exceptionText(e));
+      return;
+    }
+    if (!mounted) return;
+    var approved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => PayPalScreen(checkout: checkout)),
+    );
+    if (approved != true) {
+      if (mounted) showMessage(context, "Plaćanje je prekinuto.");
+      return;
+    }
+    await runAction(() => _paymentProvider.capture(checkout.paymentId), "Plaćanje je uspješno. Hvala!");
   }
 
   void completeAppointment(Appointment appointment) async {
@@ -480,6 +510,38 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
     return buttons;
   }
 
+  // Paid, refunded, or the pay button for the customer. The tradesperson only sees whether it is paid.
+  Widget buildPayment(ServiceRequestDetail detail) {
+    var appointment = detail.appointment!;
+    if (appointment.isPaid) {
+      return Card(
+        child: ListTile(
+          leading: Icon(
+            appointment.isRefunded ? Icons.undo : Icons.verified_outlined,
+            color: appointment.isRefunded ? AppTheme.textMuted : AppTheme.gold,
+          ),
+          title: Text(appointment.isRefunded ? "Novac je vraćen" : "Plaćeno"),
+          subtitle: Text(
+            appointment.isRefunded
+                ? "Iznos je vraćen na PayPal račun kupca."
+                : "Plaćanje je potvrđeno putem PayPala.",
+          ),
+        ),
+      );
+    }
+    if (!isCustomerOwner(detail.request)) {
+      return const Text("Kupac još nije platio posao.", style: TextStyle(color: AppTheme.textMuted));
+    }
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: isBusy ? null : () => payAppointment(detail),
+        icon: const Icon(Icons.payment),
+        label: const Text("Plati putem PayPala"),
+      ),
+    );
+  }
+
   // The "rate" button, or the rating that was already given.
   Widget buildReview(Appointment appointment) {
     var existing = review;
@@ -536,6 +598,11 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
         if (detail.appointment != null) ...[
           const SectionTitle("Termin"),
           buildAppointment(detail),
+        ],
+        if (detail.appointment?.status == Appointment.completed &&
+            (isCustomerOwner(request) || isAssignedTradesperson(detail))) ...[
+          const SectionTitle("Plaćanje"),
+          buildPayment(detail),
         ],
         if (canBeRated(detail) && isReviewLoaded) ...[
           const SectionTitle("Vaša ocjena"),

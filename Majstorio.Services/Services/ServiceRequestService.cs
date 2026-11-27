@@ -74,6 +74,7 @@ public class ServiceRequestService : IServiceRequestService
             .Include(request => request.ServiceCategory)
             .Include(request => request.Offers).ThenInclude(offer => offer.TradespersonProfile.User)
             .Include(request => request.Offers).ThenInclude(offer => offer.Appointment)
+                .ThenInclude(appointment => appointment!.Payments).ThenInclude(payment => payment.Refund)
             .Include(request => request.StatusHistories).ThenInclude(history => history.ChangedByUser)
             .AsSplitQuery()
             .FirstOrDefaultAsync(request => request.Id == id);
@@ -104,6 +105,7 @@ public class ServiceRequestService : IServiceRequestService
             response.Appointment.CustomerName = response.CustomerName;
             response.Appointment.TradespersonName = PersonNames.Full(acceptedOffer.TradespersonProfile.User);
             response.Appointment.ServiceCategoryName = response.ServiceCategoryName;
+            PaymentState.Fill(response.Appointment, acceptedOffer.Appointment!);
         }
 
         response.StatusHistory = request.StatusHistories

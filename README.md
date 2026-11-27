@@ -8,7 +8,8 @@ The application is under development.
 
 - The database schema is defined through EF Core configurations and created by migrations. The API applies pending migrations and the seed data on startup.
 - The API covers the core flow: registration and login, service requests, offers, accepting an offer with appointment confirmation, completing and cancelling, and the status history. It also has the administrative data: cities, service categories, users, tradesperson profiles, news posts, reviews, the dashboard and the two reports.
-- Not implemented yet: PayPal payment and refund, the recommender, and e-mail delivery of the password reset token.
+- PayPal sandbox payment of a completed job (mobile) and a full refund (desktop) are implemented.
+- Not implemented yet: the recommender, and e-mail delivery of the password reset token.
 - The Flutter desktop app is in `UI/majstorio_desktop` (administrators). The Flutter Android app is in `UI/majstorio_mobile` (customers and tradespeople), including ratings and profile editing with a photo.
 
 ## Technologies
@@ -106,7 +107,7 @@ All of them are listed with example values in `.env.example`.
 | `RabbitMq__*` | Compose, API, worker | Broker host, port, user, password, virtual host, exchange and queue. |
 | `*_IMAGE`, `HOST_BIND_ADDRESS`, `*_HOST_PORT`, `API_CONTAINER_PORT` | Compose | Pinned image tags and published ports. |
 | `ProfileImages__Path` | API (optional) | Folder for uploaded profile photos. Defaults to `uploads/profile-images` next to the API; in Docker it is the `profile-images` volume. |
-| `PayPal__*` | API (planned) | PayPal sandbox settings; payments are not implemented yet. |
+| `PayPal__*` | API | PayPal sandbox app credentials and the return and cancel addresses (see `.env.example`). |
 | `MAJSTORIO_TEST_SQLSERVER` | Tests (optional) | SQL Server for the concurrency tests instead of LocalDB. |
 
 ## Authentication
@@ -182,6 +183,19 @@ All require a token.
 | `GET` | `/Appointments`, `/Appointments/{id}` | Administrator | Administrative overview for the desktop app. |
 
 Appointments are not created, edited or deleted directly: they are created by accepting an offer and cancelled by cancelling the request.
+
+### Payments (`/Payments`)
+
+| Method | Route | Who | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/Payments` | Customer (owner) | Body `{ "appointmentId" }`. Creates the PayPal order for a completed job with the price of the accepted offer and returns the approval page. |
+| `POST` | `/Payments/{id}/capture` | Customer (owner) | After approval, the API captures the order at PayPal and only then marks the payment Paid. Calling it again changes nothing. |
+| `POST` | `/Payments/{id}/refund` | Administrator | Body `{ "reason" }`. Full refund of the captured amount, once per payment. |
+| `GET` | `/Payments?status=` | Administrator | All payments, newest first. |
+
+How it works: the mobile app opens the PayPal page inside the app (WebView). When PayPal redirects to `PayPal__ReturnUrl`, the app closes the page and calls `capture`. The app never sends an amount. Every PayPal call that changes something sends a `PayPal-Request-Id`, so a repeated call does not charge or refund twice. The tradesperson is notified of a payment, the customer of a refund.
+
+To test it, put your sandbox app credentials in `.env`, sign in on the phone as `mobile`, open a completed job and pay with a sandbox personal account. The seeded payments use invented PayPal ids, so they cannot be refunded through PayPal; refund a payment you made yourself.
 
 ### Tradesperson profiles (`/TradespersonProfiles`)
 

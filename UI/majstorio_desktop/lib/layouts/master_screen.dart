@@ -12,6 +12,7 @@ import 'package:majstorio_desktop/screens/service_request/service_requests_scree
 import 'package:majstorio_desktop/screens/tradesperson_profile/tradesperson_profiles_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 import 'package:majstorio_desktop/constants.dart';
+import 'package:majstorio_desktop/screens/payment/payments_screen.dart';
 import 'package:majstorio_desktop/providers/auth/auth_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -88,6 +89,16 @@ class MasterScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => AppointmentsScreen()),
+                );
+              },
+            ),
+            _DrawerButton(
+              icon: Icons.payments_outlined,
+              label: "Payments",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PaymentsScreen()),
                 );
               },
             ),

@@ -107,7 +107,8 @@ public class AppointmentService : IAppointmentService
     private IQueryable<Appointment> AppointmentsWithNames() => _ctx.Appointments.AsNoTracking()
         .Include(appointment => appointment.Offer.ServiceRequest.Customer)
         .Include(appointment => appointment.Offer.ServiceRequest.ServiceCategory)
-        .Include(appointment => appointment.Offer.TradespersonProfile.User);
+        .Include(appointment => appointment.Offer.TradespersonProfile.User)
+        .Include(appointment => appointment.Payments).ThenInclude(payment => payment.Refund);
 
     private AppointmentResponse ToResponse(Appointment appointment)
     {
@@ -116,6 +117,7 @@ public class AppointmentService : IAppointmentService
         response.CustomerName = PersonNames.Full(offer?.ServiceRequest?.Customer);
         response.TradespersonName = PersonNames.Full(offer?.TradespersonProfile?.User);
         response.ServiceCategoryName = offer?.ServiceRequest?.ServiceCategory?.Name ?? string.Empty;
+        PaymentState.Fill(response, appointment);
         return response;
     }
 }

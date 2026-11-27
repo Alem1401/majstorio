@@ -9,6 +9,7 @@ import 'package:majstorio_mobile/providers/news_post/news_provider.dart';
 import 'package:majstorio_mobile/providers/notification/notification_provider.dart';
 import 'package:majstorio_mobile/providers/offer/offer_provider.dart';
 import 'package:majstorio_mobile/providers/review/review_provider.dart';
+import 'package:majstorio_mobile/providers/payment/payment_provider.dart';
 import 'package:majstorio_mobile/providers/service_request/service_request_provider.dart';
 import 'package:majstorio_mobile/providers/tradesperson_profile/tradesperson_profile_provider.dart';
 import 'package:majstorio_mobile/screens/login_screen.dart';
@@ -29,7 +30,8 @@ void main() {
         ChangeNotifierProvider(create: (ctx) => AppointmentProvider()),
         ChangeNotifierProvider(create: (ctx) => AccountProvider()),
         ChangeNotifierProvider(create: (ctx) => NotificationProvider()),
-        ChangeNotifierProvider(create: (ctx) => ReviewProvider())
+        ChangeNotifierProvider(create: (ctx) => ReviewProvider()),
+        ChangeNotifierProvider(create: (ctx) => PaymentProvider())
       ],
       child: const MyApp(),
     ),

@@ -11,4 +11,7 @@ public class AppointmentResponse
     public DateTime EndUtc { get; set; }
     // 0 = Pending, 1 = Confirmed, 2 = Cancelled, 3 = Completed.
     public int Status { get; set; }
+    // True once PayPal confirmed the payment; the app then hides the pay button.
+    public bool IsPaid { get; set; }
+    public bool IsRefunded { get; set; }
 }

@@ -11,6 +11,7 @@ using Majstorio.WebAPI.Handlers;
 using Majstorio.WebAPI.Services;
 using Majstorio.WebAPI.Services.Auth;
 using Majstorio.WebAPI.Services.Messaging;
+using Majstorio.WebAPI.Services.Payments;
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.SignalR;
@@ -67,6 +68,10 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<IPayPalClient, PayPalClient>(http =>
+    http.BaseAddress = new Uri(builder.Configuration["PayPal:BaseUrl"] ?? "https://api-m.sandbox.paypal.com/"));
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>();

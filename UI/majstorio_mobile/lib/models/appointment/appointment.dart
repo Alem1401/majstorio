@@ -23,6 +23,9 @@ class Appointment {
   final DateTime startUtc;
   final DateTime endUtc;
   final int status;
+  // Set by the API once PayPal confirmed the payment; the pay button is hidden then.
+  final bool isPaid;
+  final bool isRefunded;
 
   Appointment({
     required this.id,
@@ -33,6 +36,8 @@ class Appointment {
     required this.startUtc,
     required this.endUtc,
     required this.status,
+    this.isPaid = false,
+    this.isRefunded = false,
   });
 
   String get statusName => statusNames[status] ?? 'Nepoznato';
@@ -51,6 +56,8 @@ class Appointment {
       startUtc: parseUtc(json['startUtc']),
       endUtc: parseUtc(json['endUtc']),
       status: json['status'],
+      isPaid: json['isPaid'] ?? false,
+      isRefunded: json['isRefunded'] ?? false,
     );
   }
 }

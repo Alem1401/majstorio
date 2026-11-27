@@ -59,6 +59,17 @@ class BaseProvider<T> extends ChangeNotifier {
     notifyListeners();
   }
 
+  // A POST that changes data and answers with JSON (for example the PayPal checkout of a payment).
+  Future<dynamic> postJson(String path, [Object? body]) async {
+    var response = await send(
+      client.post(url(path), headers: authHeaders(), body: json.encode(body ?? {})),
+      isCommand: true,
+    );
+    checkResponse(response);
+    notifyListeners();
+    return json.decode(response.body);
+  }
+
   // Waits for the answer, and turns "no connection" and "no answer in time" into a message.
   // For a change (isCommand) the app cannot know whether the server applied it, so it says so:
   // the user should look at the data again before repeating the action.
