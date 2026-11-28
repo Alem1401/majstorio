@@ -7,6 +7,7 @@ import 'package:majstorio_desktop/providers/report/report_provider.dart';
 import 'package:majstorio_desktop/providers/review/review_provider.dart';
 import 'package:majstorio_desktop/providers/service_request/service_request_provider.dart';
 import 'package:majstorio_desktop/providers/tradesperson_profile/tradesperson_profile_provider.dart';
+import 'package:majstorio_desktop/providers/tradesperson_service/tradesperson_service_provider.dart';
 import 'package:majstorio_desktop/providers/payment/payment_provider.dart';
 import 'package:majstorio_desktop/providers/city/city_provider.dart';
 import 'package:majstorio_desktop/providers/news_post/news_provider.dart';
@@ -33,6 +34,7 @@ void main() {
         ChangeNotifierProvider(create: (ctx) => ReportProvider()),
         ChangeNotifierProvider(create: (ctx) => ServiceRequestProvider()),
         ChangeNotifierProvider(create: (ctx) => TradespersonProfileProvider()),
+        ChangeNotifierProvider(create: (ctx) => TradespersonServiceProvider()),
         ChangeNotifierProvider(create: (ctx) => PaymentProvider()),
       ],
     child: MyApp(),),

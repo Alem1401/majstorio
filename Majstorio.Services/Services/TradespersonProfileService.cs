@@ -147,7 +147,8 @@ public class TradespersonProfileService : ITradespersonProfileService
                 Description = service.Description,
                 MinimumPrice = service.MinimumPrice,
                 MaximumPrice = service.MaximumPrice,
-                EstimatedDurationMinutes = service.EstimatedDurationMinutes
+                EstimatedDurationMinutes = service.EstimatedDurationMinutes,
+                IsActive = service.IsActive
             }).ToList(),
             LatestReviews = latestReviews.Select(review => new ReviewResponse
             {

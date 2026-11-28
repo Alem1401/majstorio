@@ -6,6 +6,7 @@ import 'package:majstorio_desktop/models/tradesperson_profile/tradesperson_profi
 import 'package:majstorio_desktop/models/tradesperson_profile/tradesperson_profile_search_request.dart';
 import 'package:majstorio_desktop/providers/tradesperson_profile/tradesperson_profile_provider.dart';
 import 'package:majstorio_desktop/screens/tradesperson_profile/tradesperson_profile_details_screen.dart';
+import 'package:majstorio_desktop/screens/tradesperson_service/tradesperson_services_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 import 'package:majstorio_desktop/widgets/dialogs.dart';
 import 'package:majstorio_desktop/widgets/pager.dart';
@@ -74,6 +75,16 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
     );
     if (saved != true || !mounted) return;
     showMessage(context, "${profile.fullName} was updated.");
+    loadProfiles();
+  }
+
+  // The categories in the list come from the services, so the list is loaded again on return.
+  void openServices(TradespersonProfile profile) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => TradespersonServicesScreen(profile: profile)),
+    );
+    if (!mounted) return;
     loadProfiles();
   }
 
@@ -208,10 +219,19 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
                                     ),
                                   ),
                                   DataCell(
-                                    IconButton(
-                                      tooltip: "Edit",
-                                      icon: const Icon(Icons.edit_outlined),
-                                      onPressed: () => editProfile(profile),
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          tooltip: "Edit",
+                                          icon: const Icon(Icons.edit_outlined),
+                                          onPressed: () => editProfile(profile),
+                                        ),
+                                        IconButton(
+                                          tooltip: "Services",
+                                          icon: const Icon(Icons.build_outlined),
+                                          onPressed: () => openServices(profile),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],

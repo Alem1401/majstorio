@@ -30,6 +30,7 @@ if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("Default
 
 var mappingConfig = new TypeAdapterConfig();
 new CityMappingProfile().Register(mappingConfig);
+new TradespersonServiceMappingProfile().Register(mappingConfig);
 new ServiceCategoryMappingProfile().Register(mappingConfig);
 new NewsPostMappingProfile().Register(mappingConfig);
 new AppointmentMappingProfile().Register(mappingConfig);
@@ -63,6 +64,7 @@ builder.Services.AddScoped<IOfferService, OfferService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IServiceRequestService, ServiceRequestService>();
 builder.Services.AddScoped<ITradespersonProfileService, TradespersonProfileService>();
+builder.Services.AddScoped<ITradespersonServiceService, TradespersonServiceService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReportService, ReportService>();

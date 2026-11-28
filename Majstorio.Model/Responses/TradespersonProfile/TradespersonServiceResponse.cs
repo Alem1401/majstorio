@@ -10,4 +10,5 @@ public class TradespersonServiceResponse
     public decimal MinimumPrice { get; set; }
     public decimal MaximumPrice { get; set; }
     public int EstimatedDurationMinutes { get; set; }
+    public bool IsActive { get; set; }
 }

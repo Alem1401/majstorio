@@ -209,6 +209,10 @@ All require a token.
 | `POST` | `/TradespersonProfiles/{id}/approve` | Administrator | Approves the profile and gives its user the Tradesperson role. |
 | `PUT` | `/TradespersonProfiles/{id}/active` | Administrator | Body `{ isActive }`. An inactive profile is hidden and cannot send offers. |
 
+### Tradesperson services (`/TradespersonServices`)
+
+Administrators only: paged list (`?tradespersonProfileId=&name=&isActive=`), get by id, create, update and delete.
+
 ### Own account and ratings (mobile)
 
 All require a token. Who the user is always comes from the token.
