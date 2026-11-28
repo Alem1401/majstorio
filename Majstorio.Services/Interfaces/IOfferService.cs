@@ -6,10 +6,8 @@ using Majstorio.Services.Auth;
 
 public interface IOfferService
 {
-    // Administrative overview of all offers.
+    // Administrative read-only overview of all offers.
     Task<Result<PagedResponse<OfferResponse>>> GetOffersAsync(OfferSearchRequest search);
-    Task<Result<OfferResponse>> GetOfferByIdAsync(int id);
-    Task<Result> DeleteOfferAsync(OfferDeleteRequest request);
 
     // Offers the user takes part in: sent by them as a tradesperson, or received on their own requests.
     Task<Result<PagedResponse<OfferResponse>>> GetMyOffersAsync(CurrentUser user, OfferSearchRequest search);

@@ -9,17 +9,16 @@ import 'package:majstorio_mobile/models/tradesperson_profile/tradesperson_profil
 import 'package:majstorio_mobile/providers/category/category_provider.dart';
 import 'package:majstorio_mobile/providers/city/city_provider.dart';
 import 'package:majstorio_mobile/providers/tradesperson_profile/tradesperson_profile_provider.dart';
-import 'package:majstorio_mobile/screens/tradesperson_profile/tradesperson_profile_details_screen.dart';
 import 'package:majstorio_mobile/theme/app_theme.dart';
 import 'package:majstorio_mobile/utils/error_message.dart';
 import 'package:majstorio_mobile/utils/formatters.dart';
-import 'package:majstorio_mobile/widgets/common.dart';
 import 'package:majstorio_mobile/widgets/load_state.dart';
 import 'package:majstorio_mobile/widgets/pager.dart';
+import 'package:majstorio_mobile/widgets/tradesperson_card.dart';
 import 'package:provider/provider.dart';
 
 // "Pretraga": tradespeople by name, with city, category and minimum rating filters.
-// The API sorts the results by average rating, best first.
+// The API sorts the results by its recommendation score and says why.
 class TradespersonProfilesScreen extends StatefulWidget {
   const TradespersonProfilesScreen({super.key, this.initialCategoryId});
 
@@ -310,63 +309,6 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
     );
   }
 
-  Widget buildProfileCard(TradespersonProfile profile) {
-    var rating = profile.averageRating == null
-        ? "Bez ocjena"
-        : "${profile.averageRating!.toStringAsFixed(1)} (${profile.reviewCount})";
-    var price = profile.minimumPrice == null
-        ? null
-        : "${formatMoney(profile.minimumPrice!)} – ${formatMoney(profile.maximumPrice ?? profile.minimumPrice!)}";
-
-    return Card(
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => TradespersonProfileDetailsScreen(profileId: profile.id)),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              NetworkPicture(url: profile.profileImageUrl, size: 64),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      profile.fullName,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      profile.categories.join(", "),
-                      style: const TextStyle(color: AppTheme.textMuted),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 4,
-                      children: [
-                        _Metric(icon: Icons.place_outlined, text: profile.cityName),
-                        _Metric(icon: Icons.star_outline, text: rating),
-                        _Metric(icon: Icons.task_alt, text: "${profile.completedJobs} završenih"),
-                        if (price != null) _Metric(icon: Icons.euro, text: price),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget buildResults() {
     if (isLoading && profiles.isEmpty) return const LoadingView();
     if (error != null) return ErrorView(message: error!, onRetry: loadProfiles);
@@ -381,7 +323,7 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
     return Column(
       children: [
         for (var profile in profiles)
-          Padding(padding: const EdgeInsets.only(bottom: 12), child: buildProfileCard(profile)),
+          Padding(padding: const EdgeInsets.only(bottom: 12), child: TradespersonCard(profile: profile)),
         Card(
           child: Pager(
             page: page,
@@ -457,7 +399,7 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
             ),
             const SizedBox(height: 12),
             const Text(
-              "Poredano po prosječnoj ocjeni",
+              "Poredano po preporuci za vas",
               style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
             ),
             const SizedBox(height: 8),
@@ -465,25 +407,6 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
           ],
         ),
       ),
-    );
-  }
-}
-
-class _Metric extends StatelessWidget {
-  const _Metric({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: AppTheme.textMuted),
-        const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 13)),
-      ],
     );
   }
 }

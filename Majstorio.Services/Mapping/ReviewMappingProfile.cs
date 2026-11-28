@@ -20,25 +20,5 @@ public class ReviewMappingProfile : IRegister
             .Ignore(destination => destination.Appointment)
             .Ignore(destination => destination.TradespersonProfile)
             .Ignore(destination => destination.Customer);
-
-        config.NewConfig<ReviewUpdateRequest, Review>()
-            .Ignore(destination => destination.Id)
-            .Ignore(destination => destination.CreatedAtUtc)
-            .Ignore(destination => destination.TradespersonProfileId)
-            .Ignore(destination => destination.CustomerId)
-            .Ignore(destination => destination.Appointment)
-            .Ignore(destination => destination.TradespersonProfile)
-            .Ignore(destination => destination.Customer);
-
-        config.NewConfig<ReviewDeleteRequest, Review>()
-            .Ignore(destination => destination.AppointmentId)
-            .Ignore(destination => destination.TradespersonProfileId)
-            .Ignore(destination => destination.CustomerId)
-            .Ignore(destination => destination.Rating)
-            .Ignore(nameof(Review.Comment))
-            .Ignore(destination => destination.CreatedAtUtc)
-            .Ignore(destination => destination.Appointment)
-            .Ignore(destination => destination.TradespersonProfile)
-            .Ignore(destination => destination.Customer);
     }
 }

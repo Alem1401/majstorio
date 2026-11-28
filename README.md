@@ -9,7 +9,8 @@ The application is under development.
 - The database schema is defined through EF Core configurations and created by migrations. The API applies pending migrations and the seed data on startup.
 - The API covers the core flow: registration and login, service requests, offers, accepting an offer with appointment confirmation, completing and cancelling, and the status history. It also has the administrative data: cities, service categories, users, tradesperson profiles, news posts, reviews, the dashboard and the two reports.
 - PayPal sandbox payment of a completed job (mobile) and a full refund (desktop) are implemented.
-- Not implemented yet: the recommender, and e-mail delivery of the password reset token.
+- The tradesperson search and the mobile home screen use an explainable recommender (content-based filtering with cosine similarity, popularity ranking for new users), described in `recommender-dokumentacija.md`.
+- Not implemented yet: e-mail delivery of the password reset token.
 - The Flutter desktop app is in `UI/majstorio_desktop` (administrators). The Flutter Android app is in `UI/majstorio_mobile` (customers and tradespeople), including ratings and profile editing with a photo.
 
 ## Technologies
@@ -135,7 +136,7 @@ Every seeded account uses the password `test`.
 Lists are paged with `page` and `pageSize` (at most 100) and return `{ items, totalCount, page, pageSize }`. Errors return `{ "message": "..." }` with 400 (validation), 401 (no valid token), 403 (not allowed), 404 (not found, or not visible to the caller) or 409 (the rule or the current status does not allow it). Statuses are numbers:
 
 - Request: 0 Created, 1 OfferAccepted, 2 AppointmentConfirmed, 3 Completed, 4 Cancelled.
-- Offer: 0 Pending, 1 Accepted, 2 Rejected, 3 Withdrawn, 4 Closed.
+- Offer: 0 Pending, 1 Accepted, 3 Withdrawn, 4 Closed.
 - Appointment: 0 Pending, 1 Confirmed, 2 Cancelled, 3 Completed.
 
 ### Account (`/Auth`)
@@ -158,9 +159,9 @@ All require a token.
 | `GET` | `/ServiceRequests?status=&cityId=&serviceCategoryId=&fromUtc=&toUtc=` | signed in | A customer gets their own requests. A tradesperson gets open requests in their city and category, plus the ones they made an offer on. An administrator gets all. |
 | `GET` | `/ServiceRequests/{id}` | signed in | Detail with offers, appointment and status history. The customer and administrator see all offers; a tradesperson sees only their own. |
 | `POST` | `/ServiceRequests` | signed in | Body `{ serviceCategoryId, cityId, description, address?, desiredStartUtc, maximumBudget, targetTradespersonProfileId? }`. Budget is in EUR. The customer comes from the token and the status starts as Created. |
-| `PUT` | `/ServiceRequests/{id}` | owner | Only while the request is open and has no offers. |
-| `DELETE` | `/ServiceRequests/{id}` | owner | Only while the request is open and has no offers; otherwise cancel it. |
 | `POST` | `/ServiceRequests/{id}/cancel` | owner, assigned tradesperson, administrator | Body `{ reason? }`. Allowed until the request is completed. Also cancels the appointment and closes pending offers. |
+
+A request is never edited or deleted: it is cancelled, so its status history stays.
 
 ### Offers (`/Offers`)
 
@@ -171,8 +172,7 @@ All require a token.
 | `PUT` | `/Offers/{id}` | Tradesperson (owner) | Changes the price and time of a pending offer. |
 | `POST` | `/Offers/{id}/withdraw` | Tradesperson (owner) | Only while the offer is pending. |
 | `POST` | `/Offers/{id}/accept` | owner of the request | In one transaction: accepts the offer, closes the other offers, creates the appointment (Pending, then Confirmed), moves the request to AppointmentConfirmed and writes two history rows. Returns 409 for a repeated acceptance or when the tradesperson already has an overlapping appointment. |
-| `GET` | `/Offers`, `/Offers/{id}` | Administrator | Administrative overview for the desktop app. |
-| `DELETE` | `/Offers/{id}` | Administrator | Deletes a pending offer without an appointment. |
+| `GET` | `/Offers?status=` | Administrator | Read-only overview for the desktop app. |
 
 ### Appointments (`/Appointments`)
 
@@ -180,7 +180,7 @@ All require a token.
 | --- | --- | --- | --- |
 | `GET` | `/Appointments/mine?status=` | signed in | Appointments of the user's requests or of the jobs assigned to them. |
 | `POST` | `/Appointments/{id}/complete` | Tradesperson (assigned) | Marks the job as completed, not before the appointment starts. |
-| `GET` | `/Appointments`, `/Appointments/{id}` | Administrator | Administrative overview for the desktop app. |
+| `GET` | `/Appointments?status=` | Administrator | Read-only overview for the desktop app. |
 
 Appointments are not created, edited or deleted directly: they are created by accepting an offer and cancelled by cancelling the request.
 
@@ -205,6 +205,7 @@ All require a token.
 | --- | --- | --- | --- |
 | `GET` | `/TradespersonProfiles?name=&cityId=&serviceCategoryId=&minimumRating=` | signed in | Approved, active profiles with rating, number of jobs, price range and categories, best rated first. Administrators also see unapproved and inactive profiles and can filter with `isApproved` and `isActive`. |
 | `GET` | `/TradespersonProfiles/{id}` | signed in | Detail with services, prices and the latest reviews. |
+| `PUT` | `/TradespersonProfiles/{id}` | Administrator | Body `{ cityId, description }`. |
 | `POST` | `/TradespersonProfiles/{id}/approve` | Administrator | Approves the profile and gives its user the Tradesperson role. |
 | `PUT` | `/TradespersonProfiles/{id}/active` | Administrator | Body `{ isActive }`. An inactive profile is hidden and cannot send offers. |
 
@@ -227,7 +228,7 @@ All require a token. Who the user is always comes from the token.
 
 ### Administrative data (desktop)
 
-`/Cities`, `/ServiceCategories`, `/NewsPost`, `/Users` and `/Reviews` each have a paged list, get by id, update and delete (`/Users` has no create; accounts are registered). `/Dashboard` returns the numbers of the home screen, and `/Reports/requests` and `/Reports/tradespeople` return the data of the two PDF reports.
+`/Cities`, `/ServiceCategories`, `/NewsPost` and `/Users` each have a paged list, get by id, update and delete (`/Users` has no create; accounts are registered). `/Reviews` is moderation: list and delete only; customers rate through `/Reviews/mine`. `/Dashboard` returns the numbers of the home screen, and `/Reports/requests` and `/Reports/tradespeople` return the data of the two PDF reports.
 
 Every one of them requires a token. `/Users`, `/Reviews`, `/Dashboard` and `/Reports` are for administrators only. `/Cities`, `/ServiceCategories` and `/NewsPost` can be read by any signed-in user and changed only by administrators. Only the `/Auth` endpoints for register, login, forgot and reset password work without a token.
 
@@ -279,4 +280,4 @@ Accepting, withdrawing, cancelling and completing first lock the request row ins
 
 The final public repository will contain the complete source code. Android and Windows builds will be attached to an immutable GitHub Release as a single ZIP containing the APK and the complete Windows release folder.
 
-Sensitive configuration must follow the course's encrypted ZIP procedure; an unencrypted `.env` must not be included in the release. The exact release link and the configuration archive password are submitted through DLWMS. Recommendation documentation will be added when that feature is implemented.
+Sensitive configuration must follow the course's encrypted ZIP procedure; an unencrypted `.env` must not be included in the release. The exact release link and the configuration archive password are submitted through DLWMS. The recommendation system is documented in `recommender-dokumentacija.md`.

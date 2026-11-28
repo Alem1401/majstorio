@@ -5,14 +5,14 @@ import 'package:majstorio_desktop/providers/dashboard/dashboard_provider.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
-class MyWidget extends StatefulWidget {
-  const MyWidget({super.key});
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
 
   @override
-  State<MyWidget> createState() => _MyWidgetState();
+  State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _MyWidgetState extends State<MyWidget> {
+class _DashboardScreenState extends State<DashboardScreen> {
   late DashboardProvider _provider;
   DateTime now = DateTime.now();
 

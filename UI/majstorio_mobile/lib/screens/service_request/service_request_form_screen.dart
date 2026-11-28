@@ -3,7 +3,6 @@ import 'package:majstorio_mobile/layouts/main_navigation.dart';
 import 'package:majstorio_mobile/layouts/master_screen.dart';
 import 'package:majstorio_mobile/models/category/category.dart';
 import 'package:majstorio_mobile/models/city/city.dart';
-import 'package:majstorio_mobile/models/service_request/service_request.dart';
 import 'package:majstorio_mobile/models/service_request/service_request_upsert_request.dart';
 import 'package:majstorio_mobile/models/tradesperson_profile/tradesperson_profile.dart';
 import 'package:majstorio_mobile/providers/category/category_provider.dart';
@@ -21,12 +20,10 @@ import 'package:provider/provider.dart';
 // Create or edit a request.
 // - From "Zahtjevi": a general request that every matching tradesperson can see.
 // - From a tradesperson's profile ("target"): a request for that person; city and category are limited to theirs.
-// - With "toUpdate": edit a request that is still Created and has no offers.
 // Pops true when the request was saved.
 class ServiceRequestFormScreen extends StatefulWidget {
-  const ServiceRequestFormScreen({super.key, this.toUpdate, this.target});
+  const ServiceRequestFormScreen({super.key, this.target});
 
-  final ServiceRequest? toUpdate;
   final TradespersonProfileDetail? target;
 
   @override
@@ -55,27 +52,11 @@ class _ServiceRequestFormScreenState extends State<ServiceRequestFormScreen> {
   // Errors the API returned for single fields, shown under those fields.
   var serverErrors = <String, String>{};
 
-  bool get isEdit => widget.toUpdate != null;
-
-  // A request for a chosen tradesperson cannot change its city or category when edited,
-  // because the person only works in their own city and categories.
-  bool get isLockedTarget => widget.toUpdate?.targetTradespersonProfileId != null;
-
   @override
   void initState() {
     _serviceRequestProvider = context.read<ServiceRequestProvider>();
     _cityProvider = context.read<CityProvider>();
     _categoryProvider = context.read<CategoryProvider>();
-
-    var request = widget.toUpdate;
-    if (request != null) {
-      _description.text = request.description;
-      _address.text = request.address ?? "";
-      _budget.text = request.maximumBudget.toStringAsFixed(2);
-      cityId = request.cityId;
-      categoryId = request.serviceCategoryId;
-      desiredStart = request.desiredStartUtc.toLocal();
-    }
 
     var target = widget.target;
     if (target != null) {
@@ -110,10 +91,6 @@ class _ServiceRequestFormScreenState extends State<ServiceRequestFormScreen> {
       if (target != null) {
         allCities = allCities.where((city) => city.id == target.profile.cityId).toList();
         allCategories = allCategories.where((category) => target.serviceCategories.containsKey(category.id)).toList();
-      }
-      if (isLockedTarget) {
-        allCities = allCities.where((city) => city.id == cityId).toList();
-        allCategories = allCategories.where((category) => category.id == categoryId).toList();
       }
 
       if (!mounted) return;
@@ -168,7 +145,7 @@ class _ServiceRequestFormScreenState extends State<ServiceRequestFormScreen> {
 
     var confirmed = await showConfirmDialog(
       context,
-      isEdit ? "Spremiti izmjene zahtjeva?" : "Poslati zahtjev? Majstori će ga vidjeti i moći poslati ponude.",
+      "Poslati zahtjev? Majstori će ga vidjeti i moći poslati ponude.",
     );
     if (!confirmed || !mounted) return;
 
@@ -186,13 +163,9 @@ class _ServiceRequestFormScreenState extends State<ServiceRequestFormScreen> {
     );
 
     try {
-      if (isEdit) {
-        await _serviceRequestProvider.update(widget.toUpdate!.id, request);
-      } else {
-        await _serviceRequestProvider.insert(request);
-      }
+      await _serviceRequestProvider.insert(request);
       if (!mounted) return;
-      showMessage(context, isEdit ? "Zahtjev je izmijenjen." : "Zahtjev je poslan.");
+      showMessage(context, "Zahtjev je poslan.");
       if (widget.target != null) {
         // Sent from a profile: open "Zahtjevi", where the new request is at the top.
         Navigator.pushAndRemoveUntil(
@@ -252,13 +225,13 @@ class _ServiceRequestFormScreenState extends State<ServiceRequestFormScreen> {
         children: [
           FormHeader(
             icon: Icons.assignment_outlined,
-            title: isEdit ? "Izmjena zahtjeva" : "Novi zahtjev",
+            title: "Novi zahtjev",
             subtitle: "Opišite posao, kada i za koliko ga želite.",
           ),
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 24),
-          if (widget.target != null || isLockedTarget) buildTargetCard(),
+          if (widget.target != null) buildTargetCard(),
           DropdownButtonFormField<int>(
             initialValue: categoryId,
             isExpanded: true,
@@ -266,7 +239,7 @@ class _ServiceRequestFormScreenState extends State<ServiceRequestFormScreen> {
             items: [
               for (var category in categories!) DropdownMenuItem(value: category.id, child: Text(category.name)),
             ],
-            onChanged: isLockedTarget ? null : (value) => setState(() => categoryId = value),
+            onChanged: (value) => setState(() => categoryId = value),
             validator: (value) => value == null ? "Odaberite kategoriju" : serverErrors["serviceCategoryId"],
           ),
           const SizedBox(height: 16),
@@ -275,7 +248,7 @@ class _ServiceRequestFormScreenState extends State<ServiceRequestFormScreen> {
             isExpanded: true,
             decoration: const InputDecoration(labelText: "Grad", prefixIcon: Icon(Icons.place_outlined)),
             items: [for (var city in cities!) DropdownMenuItem(value: city.id, child: Text(city.name))],
-            onChanged: widget.target != null || isLockedTarget ? null : (value) => setState(() => cityId = value),
+            onChanged: widget.target != null ? null : (value) => setState(() => cityId = value),
             validator: (value) => value == null ? "Odaberite grad" : serverErrors["cityId"],
           ),
           const SizedBox(height: 16),
@@ -335,8 +308,8 @@ class _ServiceRequestFormScreenState extends State<ServiceRequestFormScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: isSaving ? null : save,
-              icon: Icon(isEdit ? Icons.save_outlined : Icons.send_outlined),
-              label: Text(isSaving ? "Spremanje..." : (isEdit ? "Spremi izmjene" : "Pošalji zahtjev")),
+              icon: const Icon(Icons.send_outlined),
+              label: Text(isSaving ? "Spremanje..." : "Pošalji zahtjev"),
             ),
           ),
         ],
@@ -365,6 +338,6 @@ class _ServiceRequestFormScreenState extends State<ServiceRequestFormScreen> {
         child: Card(child: Padding(padding: const EdgeInsets.all(20), child: buildForm())),
       );
     }
-    return MasterScreen(title: isEdit ? "Izmjena zahtjeva" : "Novi zahtjev", child: body);
+    return MasterScreen(title: "Novi zahtjev", child: body);
   }
 }

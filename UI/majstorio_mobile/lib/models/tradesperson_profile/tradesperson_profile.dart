@@ -18,6 +18,8 @@ class TradespersonProfile {
   final double? minimumPrice;
   final double? maximumPrice;
   final List<String> categories;
+  // Why the API recommends this tradesperson, strongest first: Category, City, Rating, Popularity.
+  final List<String> recommendationReasons;
 
   TradespersonProfile({
     required this.id,
@@ -35,7 +37,23 @@ class TradespersonProfile {
     this.minimumPrice,
     this.maximumPrice,
     required this.categories,
+    this.recommendationReasons = const [],
   });
+
+  // The explanation shown next to a recommended tradesperson.
+  String get recommendationText {
+    var parts = <String>[];
+    for (var reason in recommendationReasons) {
+      if (reason == 'Category') parts.add("kategorija koju tražite");
+      if (reason == 'City') parts.add("grad koji tražite");
+      if (reason == 'Rating' && averageRating != null) {
+        var label = averageRating! >= 4.5 ? "visoka ocjena" : "ocjena";
+        parts.add("$label ${averageRating!.toStringAsFixed(1)}");
+      }
+      if (reason == 'Popularity') parts.add("popularan po završenim poslovima");
+    }
+    return parts.isEmpty ? "Preporuka: dostupan majstor" : "Preporuka: ${parts.join(', ')}";
+  }
 
   factory TradespersonProfile.fromJson(Map<String, dynamic> json) {
     return TradespersonProfile(
@@ -54,6 +72,7 @@ class TradespersonProfile {
       minimumPrice: (json['minimumPrice'] as num?)?.toDouble(),
       maximumPrice: (json['maximumPrice'] as num?)?.toDouble(),
       categories: ((json['categories'] ?? []) as List).cast<String>(),
+      recommendationReasons: ((json['recommendationReasons'] ?? []) as List).cast<String>(),
     );
   }
 }

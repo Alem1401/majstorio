@@ -63,14 +63,29 @@ public class UserServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Update_ChangesRoleBetweenCustomerAndAdministrator()
+    public async Task Update_ChangesRoleBetweenCustomerAndAdministrator_AndInvalidatesOldTokens()
     {
         var user = await AddUserAsync("amra", UserRole.Customer);
+        var tokenVersion = user.TokenVersion;
 
         Assert.True((await _service.UpdateUserAsync(Request(user, role: "Administrator"))).IsSuccess);
 
         _ctx.ChangeTracker.Clear();
-        Assert.Equal(UserRole.Administrator, (await _ctx.ApplicationUsers.SingleAsync()).Role);
+        var stored = await _ctx.ApplicationUsers.SingleAsync();
+        Assert.Equal(UserRole.Administrator, stored.Role);
+        Assert.Equal(tokenVersion + 1, stored.TokenVersion);
+    }
+
+    [Fact]
+    public async Task Update_SameRole_KeepsTokensValid()
+    {
+        var user = await AddUserAsync("amra", UserRole.Customer);
+        var tokenVersion = user.TokenVersion;
+
+        Assert.True((await _service.UpdateUserAsync(Request(user, role: "Customer"))).IsSuccess);
+
+        _ctx.ChangeTracker.Clear();
+        Assert.Equal(tokenVersion, (await _ctx.ApplicationUsers.SingleAsync()).TokenVersion);
     }
 
     [Theory]

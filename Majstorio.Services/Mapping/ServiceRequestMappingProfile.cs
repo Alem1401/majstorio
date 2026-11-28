@@ -18,7 +18,5 @@ public class ServiceRequestMappingProfile : IRegister
 
         // The customer and the status are set by the service, never by the client.
         config.NewConfig<ServiceRequestCreateRequest, ServiceRequest>();
-        config.NewConfig<ServiceRequestUpdateRequest, ServiceRequest>()
-            .Ignore(destination => destination.Id);
     }
 }

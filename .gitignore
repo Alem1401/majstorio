@@ -51,6 +51,8 @@ fit-build-*.zip
 *.ldf
 *.bak
 *.md
+# Required by the course rules.
+!recommender-dokumentacija.md
 
 # Local IDE and operating-system files
 .idea/

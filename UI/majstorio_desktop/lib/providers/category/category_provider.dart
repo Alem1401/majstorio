@@ -20,14 +20,6 @@ class CategoryProvider extends BaseProvider<Category>{
     return response.statusCode;
   }
 
-  Future<Category> getById(int id) async {
-    var response = await http.get(Uri.parse("$baseUrl/ServiceCategories/$id"), headers: authHeaders());
-    checkUnauthorized(response);
-    var jsonCategory =  json.decode(response.body);
-    var category = Category.fromJson(jsonCategory);
-    return category;
-  }
-
   Future<int> delete(Category category) async{
     var response = await http.delete(Uri.parse("$baseUrl/ServiceCategories/${category.id}"), headers: authHeaders());
     checkUnauthorized(response);

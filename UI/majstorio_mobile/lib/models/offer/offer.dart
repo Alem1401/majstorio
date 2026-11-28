@@ -5,13 +5,11 @@ class Offer {
   // The status numbers the API uses for an offer.
   static const int pending = 0;
   static const int accepted = 1;
-  static const int rejected = 2;
   static const int withdrawn = 3;
   static const int closed = 4;
   static const Map<int, String> statusNames = {
     0: 'Na čekanju',
     1: 'Prihvaćena',
-    2: 'Odbijena',
     3: 'Povučena',
     4: 'Zatvorena',
   };
@@ -26,7 +24,7 @@ class Offer {
   final DateTime proposedStartUtc;
   final int durationMinutes;
   final int status;
-  // Why the offer was rejected or closed, when the API gives a reason.
+  // Why the offer was closed or withdrawn, when the API gives a reason.
   final String? decisionReason;
 
   Offer({

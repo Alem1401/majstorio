@@ -77,15 +77,6 @@ public class AppointmentService : IAppointmentService
             appointment.Offer.TradespersonProfile.UserId == user.Id
             || appointment.Offer.ServiceRequest.CustomerId == user.Id), search);
 
-    public async Task<Result<AppointmentResponse>> GetAppointmentByIdAsync(int id)
-    {
-        var appointment = await AppointmentsWithNames().FirstOrDefaultAsync(appointment => appointment.Id == id);
-        if (appointment == null)
-            return Result<AppointmentResponse>.Failure(ErrorType.NotFound, "Appointment not found.");
-
-        return Result<AppointmentResponse>.Success(ToResponse(appointment));
-    }
-
     private async Task<Result<PagedResponse<AppointmentResponse>>> GetPageAsync(
         IQueryable<Appointment> query, AppointmentSearchRequest search)
     {

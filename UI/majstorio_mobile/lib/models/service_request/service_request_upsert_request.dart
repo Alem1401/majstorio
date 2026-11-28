@@ -1,7 +1,7 @@
 import 'package:majstorio_mobile/utils/formatters.dart';
 
-// What the customer sends when creating (POST /ServiceRequests) or editing (PUT /ServiceRequests/{id}) a request.
-// The customer is taken from the token, never sent. The chosen tradesperson can only be set on create.
+// What the customer sends when creating a request (POST /ServiceRequests).
+// The customer is taken from the token, never sent. A request is never edited; it can only be cancelled.
 class ServiceRequestUpsertRequest {
   final int serviceCategoryId;
   final int cityId;

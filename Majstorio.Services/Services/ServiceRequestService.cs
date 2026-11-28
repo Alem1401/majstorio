@@ -143,33 +143,6 @@ public class ServiceRequestService : IServiceRequestService
         return Result.Success();
     }
 
-    public async Task<Result> UpdateServiceRequestAsync(CurrentUser user, ServiceRequestUpdateRequest request)
-    {
-        var owned = await FindOwnedEditableAsync(user, request.Id, "changed");
-        if (!owned.IsSuccess)
-            return owned;
-
-        var validation = await ValidateCategoryAndCityAsync(request.ServiceCategoryId, request.CityId);
-        if (!validation.IsSuccess)
-            return validation;
-
-        _mapper.Map(request, owned.Value!);
-        await _ctx.SaveChangesAsync();
-        return Result.Success();
-    }
-
-    public async Task<Result> DeleteServiceRequestAsync(CurrentUser user, ServiceRequestDeleteRequest request)
-    {
-        var owned = await FindOwnedEditableAsync(user, request.Id, "deleted");
-        if (!owned.IsSuccess)
-            return owned;
-
-        // Only the "created" history row exists at this point, and it goes with the request.
-        _ctx.ServiceRequests.Remove(owned.Value!);
-        await _ctx.SaveChangesAsync();
-        return Result.Success();
-    }
-
     public async Task<Result> CancelServiceRequestAsync(CurrentUser user, ServiceRequestCancelRequest request)
     {
         // Locked first, so a cancellation and an acceptance of the same request cannot overwrite each other.
@@ -249,24 +222,6 @@ public class ServiceRequestService : IServiceRequestService
                     && (request.TargetTradespersonProfileId == null || request.TargetTradespersonProfileId == profile.Id)
                     && profile.TradespersonServices.Any(service => service.IsActive
                         && service.ServiceCategoryId == request.ServiceCategoryId))));
-    }
-
-    // A request can be edited or deleted by its customer only while nobody has made an offer on it.
-    private async Task<Result<ServiceRequest>> FindOwnedEditableAsync(CurrentUser user, int id, string action)
-    {
-        var serviceRequest = await _ctx.ServiceRequests.FirstOrDefaultAsync(request => request.Id == id);
-        if (serviceRequest == null)
-            return Result<ServiceRequest>.Failure(ErrorType.NotFound, NotFoundMessage);
-
-        if (serviceRequest.CustomerId != user.Id)
-            return Result<ServiceRequest>.Failure(ErrorType.Forbidden, "Only the customer who created the request can do this.");
-
-        if (serviceRequest.Status != RequestStatus.Created
-            || await _ctx.Offers.AnyAsync(offer => offer.ServiceRequestId == id))
-            return Result<ServiceRequest>.Failure(ErrorType.Conflict,
-                $"A request that has offers or is no longer open cannot be {action}. Cancel it instead.");
-
-        return Result<ServiceRequest>.Success(serviceRequest);
     }
 
     private async Task<Result> ValidateCategoryAndCityAsync(int serviceCategoryId, int cityId)

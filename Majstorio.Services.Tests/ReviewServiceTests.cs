@@ -1,5 +1,6 @@
 using Majstorio.Model.Requests.Review;
 using Majstorio.Model.Results;
+using Majstorio.Services.Auth;
 using Majstorio.Services.Database;
 using Majstorio.Services.Enums;
 using Majstorio.Services.Mapping;
@@ -27,36 +28,38 @@ public class ReviewServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Crud_PersistsReviewMapsResponseAndPreservesCreationTime()
+    public async Task CreateListDelete_PersistsReviewAndMapsResponse()
     {
         var appointment = await AddAppointmentAsync();
-        Assert.True((await _service.CreateReviewAsync(new() { AppointmentId = appointment.Id, Rating = 5 })).IsSuccess);
+        Assert.True((await _service.CreateMyReviewAsync(CustomerOf(appointment),
+            new() { AppointmentId = appointment.Id, Rating = 5, Comment = "  Good work.  " })).IsSuccess);
         var review = await _ctx.Reviews.SingleAsync();
-        var createdAt = review.CreatedAtUtc;
-        Assert.Null(review.Comment);
 
-        Assert.True((await _service.UpdateReviewAsync(new()
-        {
-            Id = review.Id, AppointmentId = appointment.Id, Rating = 4, Comment = "Good work."
-        })).IsSuccess);
-        _ctx.ChangeTracker.Clear();
-        var result = await _service.GetReviewByIdAsync(review.Id);
-        Assert.True(result.IsSuccess);
-        Assert.Equal(review.Id, result.Value!.Id);
-        Assert.Equal(appointment.Id, result.Value.AppointmentId);
-        Assert.Equal(4, result.Value.Rating);
-        Assert.Equal("Good work.", result.Value.Comment);
-        Assert.Equal(createdAt, (await _ctx.Reviews.SingleAsync()).CreatedAtUtc);
-        Assert.Single((await _service.GetReviewsAsync(new())).Value!.Items);
+        var listed = Assert.Single((await _service.GetReviewsAsync(new())).Value!.Items);
+        Assert.Equal(appointment.Id, listed.AppointmentId);
+        Assert.Equal(5, listed.Rating);
+        Assert.Equal("Good work.", listed.Comment);
 
         Assert.True((await _service.DeleteReviewAsync(new() { Id = review.Id })).IsSuccess);
         Assert.Empty((await _service.GetReviewsAsync(new())).Value!.Items);
     }
 
     [Fact]
+    public async Task Create_AppointmentOfAnotherCustomer_ReturnsNotFound()
+    {
+        var appointment = await AddAppointmentAsync();
+
+        var result = await _service.CreateMyReviewAsync(TestSupport.As(NewUser()),
+            new() { AppointmentId = appointment.Id, Rating = 5 });
+
+        Assert.Equal(ErrorType.NotFound, result.ErrorType);
+        Assert.Empty(await _ctx.Reviews.ToListAsync());
+    }
+
+    [Fact]
     public async Task Create_MissingAppointment_ReturnsNotFound()
     {
-        var result = await _service.CreateReviewAsync(new() { AppointmentId = 999, Rating = 5 });
+        var result = await _service.CreateMyReviewAsync(TestSupport.As(NewUser()), new() { AppointmentId = 999, Rating = 5 });
 
         Assert.Equal(ErrorType.NotFound, result.ErrorType);
         Assert.Empty(await _ctx.Reviews.ToListAsync());
@@ -70,7 +73,8 @@ public class ReviewServiceTests : IDisposable
     {
         var appointment = await AddAppointmentAsync(status);
 
-        var result = await _service.CreateReviewAsync(new() { AppointmentId = appointment.Id, Rating = 5 });
+        var result = await _service.CreateMyReviewAsync(CustomerOf(appointment),
+            new() { AppointmentId = appointment.Id, Rating = 5 });
 
         Assert.Equal(ErrorType.Conflict, result.ErrorType);
         Assert.Empty(await _ctx.Reviews.ToListAsync());
@@ -81,38 +85,15 @@ public class ReviewServiceTests : IDisposable
     {
         var appointment = await AddAppointmentAsync();
         var request = new ReviewCreateRequest { AppointmentId = appointment.Id, Rating = 5 };
-        Assert.True((await _service.CreateReviewAsync(request)).IsSuccess);
+        Assert.True((await _service.CreateMyReviewAsync(CustomerOf(appointment), request)).IsSuccess);
 
-        Assert.Equal(ErrorType.Conflict, (await _service.CreateReviewAsync(request)).ErrorType);
+        Assert.Equal(ErrorType.Conflict, (await _service.CreateMyReviewAsync(CustomerOf(appointment), request)).ErrorType);
         Assert.Single(await _ctx.Reviews.ToListAsync());
     }
 
     [Fact]
-    public async Task Update_CannotMoveReviewToAnotherAppointment()
+    public async Task MissingReview_ReturnsNotFoundForDelete()
     {
-        var appointment = await AddAppointmentAsync();
-        var otherAppointment = await AddAppointmentAsync();
-        await _service.CreateReviewAsync(new() { AppointmentId = appointment.Id, Rating = 5 });
-        var review = await _ctx.Reviews.SingleAsync();
-
-        var result = await _service.UpdateReviewAsync(new()
-        {
-            Id = review.Id, AppointmentId = otherAppointment.Id, Rating = 1, Comment = "Changed"
-        });
-
-        Assert.Equal(ErrorType.Conflict, result.ErrorType);
-        _ctx.ChangeTracker.Clear();
-        var stored = await _ctx.Reviews.SingleAsync();
-        Assert.Equal(appointment.Id, stored.AppointmentId);
-        Assert.Equal(5, stored.Rating);
-        Assert.Null(stored.Comment);
-    }
-
-    [Fact]
-    public async Task MissingReview_ReturnsNotFoundForReadUpdateAndDelete()
-    {
-        Assert.Equal(ErrorType.NotFound, (await _service.GetReviewByIdAsync(999)).ErrorType);
-        Assert.Equal(ErrorType.NotFound, (await _service.UpdateReviewAsync(new() { Id = 999 })).ErrorType);
         Assert.Equal(ErrorType.NotFound, (await _service.DeleteReviewAsync(new() { Id = 999 })).ErrorType);
     }
 
@@ -122,13 +103,11 @@ public class ReviewServiceTests : IDisposable
     [InlineData(1, true)]
     [InlineData(5, true)]
     [InlineData(6, false)]
-    public void Validators_RequireRatingBetweenOneAndFive(int rating, bool isValid)
+    public void Validator_RequiresRatingBetweenOneAndFive(int rating, bool isValid)
     {
         var create = new ReviewCreateRequest { AppointmentId = 1, Rating = rating };
-        var update = new ReviewUpdateRequest { Id = 1, AppointmentId = 1, Rating = rating };
 
         Assert.Equal(isValid, new ReviewCreateRequestValidator().Validate(create).IsValid);
-        Assert.Equal(isValid, new ReviewUpdateRequestValidator().Validate(update).IsValid);
     }
 
     [Fact]
@@ -136,12 +115,13 @@ public class ReviewServiceTests : IDisposable
     {
         var appointment = await AddAppointmentAsync();
 
-        Assert.True((await _service.CreateReviewAsync(new() { AppointmentId = appointment.Id, Rating = 5 })).IsSuccess);
+        Assert.True((await _service.CreateMyReviewAsync(CustomerOf(appointment),
+            new() { AppointmentId = appointment.Id, Rating = 5 })).IsSuccess);
 
         var review = await _ctx.Reviews.SingleAsync();
         Assert.Equal(appointment.Offer.TradespersonProfileId, review.TradespersonProfileId);
         Assert.Equal(appointment.Offer.ServiceRequest.CustomerId, review.CustomerId);
-        var response = (await _service.GetReviewByIdAsync(review.Id)).Value!;
+        var response = Assert.Single((await _service.GetReviewsAsync(new())).Value!.Items);
         Assert.Equal(review.TradespersonProfileId, response.TradespersonProfileId);
         Assert.Equal(review.CustomerId, response.CustomerId);
     }
@@ -166,6 +146,8 @@ public class ReviewServiceTests : IDisposable
         await _ctx.SaveChangesAsync();
         return appointment;
     }
+
+    private static CurrentUser CustomerOf(Appointment appointment) => TestSupport.As(appointment.Offer.ServiceRequest.Customer);
 
     private static ApplicationUser NewUser() => new()
     {

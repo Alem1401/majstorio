@@ -58,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // Replaces the login screen, so "back" cannot return to it.
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const MyWidget()),
+      MaterialPageRoute(builder: (context) => const DashboardScreen()),
     );
   }
 

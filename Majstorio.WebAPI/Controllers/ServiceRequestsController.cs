@@ -33,18 +33,6 @@ public class ServiceRequestsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] ServiceRequestCreateRequest request)
         => _resultMapper.Map(await _serviceRequestService.CreateServiceRequestAsync(User.ToCurrentUser(), request));
 
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, [FromBody] ServiceRequestUpdateRequest request)
-    {
-        request.Id = id;
-        return _resultMapper.Map(await _serviceRequestService.UpdateServiceRequestAsync(User.ToCurrentUser(), request));
-    }
-
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
-        => _resultMapper.Map(await _serviceRequestService.DeleteServiceRequestAsync(
-            User.ToCurrentUser(), new ServiceRequestDeleteRequest { Id = id }));
-
     [HttpPost("{id:int}/cancel")]
     public async Task<IActionResult> Cancel(int id, [FromBody] ServiceRequestCancelRequest request)
     {

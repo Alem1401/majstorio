@@ -286,11 +286,9 @@ public class OfferServiceTests : IDisposable
     {
         var user = TestSupport.As(_s.Customer);
 
-        Assert.Equal(ErrorType.NotFound, (await _service.GetOfferByIdAsync(999)).ErrorType);
         Assert.Equal(ErrorType.NotFound, (await _service.AcceptOfferAsync(user, 999)).ErrorType);
         Assert.Equal(ErrorType.NotFound, (await _service.WithdrawOfferAsync(user, 999)).ErrorType);
         Assert.Equal(ErrorType.NotFound, (await _service.UpdateOfferAsync(user, new() { Id = 999 })).ErrorType);
-        Assert.Equal(ErrorType.NotFound, (await _service.DeleteOfferAsync(new() { Id = 999 })).ErrorType);
     }
 
     private OfferCreateRequest CreateRequest() => new()

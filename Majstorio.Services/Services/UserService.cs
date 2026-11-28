@@ -102,6 +102,10 @@ public class UserService : IUserService
                 return Result.Failure(ErrorType.Conflict,
                     "The tradesperson role is granted or removed through the tradesperson profile, not by editing the user.");
 
+            // Tokens issued so far still carry the old role, so they stop working and the user signs in again.
+            if (role != user.Role)
+                user.TokenVersion++;
+
             user.Role = role;
         }
 

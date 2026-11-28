@@ -19,4 +19,7 @@ public class TradespersonProfileResponse
     public decimal? MinimumPrice { get; set; }
     public decimal? MaximumPrice { get; set; }
     public List<string> Categories { get; set; } = [];
+    // Why the recommender ranked this profile here, strongest first: "Category", "City", "Rating",
+    // "Popularity". Filled only in the list a non-administrator receives.
+    public List<string> RecommendationReasons { get; set; } = [];
 }

@@ -15,7 +15,6 @@ import 'package:majstorio_mobile/screens/offer/offer_details_screen.dart';
 import 'package:majstorio_mobile/screens/offer/offers_compare_screen.dart';
 import 'package:majstorio_mobile/screens/payment/paypal_screen.dart';
 import 'package:majstorio_mobile/screens/review/review_form.dart';
-import 'package:majstorio_mobile/screens/service_request/service_request_form_screen.dart';
 import 'package:majstorio_mobile/theme/app_theme.dart';
 import 'package:majstorio_mobile/utils/error_message.dart';
 import 'package:majstorio_mobile/utils/formatters.dart';
@@ -162,28 +161,6 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
       AuthSession.isTradesperson && myOffer(detail)?.status == Offer.accepted;
 
   // ---- Actions ---------------------------------------------------------------------------------
-
-  void editRequest(ServiceRequest request) async {
-    var saved = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (context) => ServiceRequestFormScreen(toUpdate: request)),
-    );
-    if (saved == true) loadDetail();
-  }
-
-  void deleteRequest(ServiceRequest request) async {
-    var confirmed = await showConfirmDialog(
-      context,
-      "Zahtjev će biti trajno obrisan zajedno sa historijom. Ova radnja se ne može poništiti. Obrisati zahtjev?",
-      title: "Brisanje zahtjeva",
-    );
-    if (!confirmed) return;
-    await runAction(
-      () => _serviceRequestProvider.delete(request.id),
-      "Zahtjev je obrisan.",
-      closeAfter: true,
-    );
-  }
 
   void cancelRequest(ServiceRequest request) async {
     var reason = await showReasonDialog(
@@ -458,19 +435,6 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
           label: Text("Usporedi ponude (${detail.pendingOffers.length})"),
         ));
       }
-      if (request.status == ServiceRequest.created && detail.offers.isEmpty) {
-        buttons.add(OutlinedButton.icon(
-          onPressed: isBusy ? null : () => editRequest(request),
-          icon: const Icon(Icons.edit_outlined),
-          label: const Text("Uredi zahtjev"),
-        ));
-        buttons.add(OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),
-          onPressed: isBusy ? null : () => deleteRequest(request),
-          icon: const Icon(Icons.delete_outline),
-          label: const Text("Obriši zahtjev"),
-        ));
-      }
     }
 
     if (AuthSession.isTradesperson) {
@@ -584,17 +548,6 @@ class _ServiceRequestDetailsScreenState extends State<ServiceRequestDetailsScree
               child: SizedBox(width: double.infinity, child: button),
             ),
         ],
-        if (isCustomerOwner(request) &&
-            request.status == ServiceRequest.created &&
-            detail.offers.isNotEmpty &&
-            detail.pendingOffers.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text(
-              "Zahtjev ima ponude, pa se više ne može uređivati ni brisati. Može se otkazati.",
-              style: TextStyle(color: AppTheme.textMuted),
-            ),
-          ),
         if (detail.appointment != null) ...[
           const SectionTitle("Termin"),
           buildAppointment(detail),

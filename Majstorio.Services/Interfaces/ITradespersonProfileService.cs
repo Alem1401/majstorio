@@ -11,6 +11,7 @@ public interface ITradespersonProfileService
     Task<Result<TradespersonProfileDetailResponse>> GetProfileByIdAsync(CurrentUser user, int id);
 
     // Administrator actions. Approval also gives the profile's user the Tradesperson role.
+    Task<Result> UpdateProfileAsync(TradespersonProfileUpdateRequest request);
     Task<Result> ApproveProfileAsync(CurrentUser administrator, int id);
     Task<Result> SetProfileActiveAsync(TradespersonProfileActiveRequest request);
 }

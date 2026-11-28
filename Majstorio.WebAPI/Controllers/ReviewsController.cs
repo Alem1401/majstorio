@@ -8,7 +8,7 @@ namespace Majstorio.WebAPI.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-// Review moderation from the desktop app. Customer reviews from the mobile app will get their own actions with ownership checks.
+// Review moderation from the desktop app: list and delete only. Customers rate jobs through MyReviewsController.
 [Authorize(Roles = RoleNames.Administrator)]
 public class ReviewsController : ControllerBase
 {
@@ -24,21 +24,6 @@ public class ReviewsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] ReviewSearchRequest search)
         => _resultMapper.Map(await _reviewService.GetReviewsAsync(search));
-
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetById(int id)
-        => _resultMapper.Map(await _reviewService.GetReviewByIdAsync(id));
-
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] ReviewCreateRequest request)
-        => _resultMapper.Map(await _reviewService.CreateReviewAsync(request));
-
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, [FromBody] ReviewUpdateRequest request)
-    {
-        request.Id = id;
-        return _resultMapper.Map(await _reviewService.UpdateReviewAsync(request));
-    }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)

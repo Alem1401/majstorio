@@ -20,14 +20,6 @@ class CityProvider extends BaseProvider<City>{
     return response.statusCode;
   }
 
-  Future<City> getById(int id) async {
-    var response = await http.get(Uri.parse("$baseUrl/Cities/$id"), headers: authHeaders());
-    checkUnauthorized(response);
-    var jsonCity =  json.decode(response.body);
-    var city = City.fromJson(jsonCity);
-    return city;
-  }
-
   Future<int> delete(City city) async{
     var response = await http.delete(Uri.parse("$baseUrl/Cities/${city.id}"), headers: authHeaders());
     checkUnauthorized(response);

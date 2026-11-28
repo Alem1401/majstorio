@@ -29,6 +29,14 @@ public class TradespersonProfilesController : ControllerBase
     public async Task<IActionResult> GetById(int id)
         => _resultMapper.Map(await _profileService.GetProfileByIdAsync(User.ToCurrentUser(), id));
 
+    [Authorize(Roles = RoleNames.Administrator)]
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] TradespersonProfileUpdateRequest request)
+    {
+        request.Id = id;
+        return _resultMapper.Map(await _profileService.UpdateProfileAsync(request));
+    }
+
     // Approving the profile is what gives its user the Tradesperson role.
     [Authorize(Roles = RoleNames.Administrator)]
     [HttpPost("{id:int}/approve")]

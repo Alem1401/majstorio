@@ -38,7 +38,7 @@ class MasterScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => MyWidget()),
+                  MaterialPageRoute(builder: (context) => DashboardScreen()),
                 );
               },
             ),

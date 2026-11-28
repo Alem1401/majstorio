@@ -6,11 +6,9 @@ part 'offer.g.dart';
 @JsonSerializable(createToJson: false)
 class Offer {
   // The status numbers the API uses for an offer.
-  static const int pending = 0;
   static const Map<int, String> statusNames = {
     0: 'Pending',
     1: 'Accepted',
-    2: 'Rejected',
     3: 'Withdrawn',
     4: 'Closed',
   };

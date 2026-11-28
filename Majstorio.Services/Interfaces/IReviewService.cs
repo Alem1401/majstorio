@@ -6,10 +6,8 @@ using Majstorio.Services.Auth;
 
 public interface IReviewService
 {
+    // Administrator moderation: all reviews, and deleting an unsuitable one.
     Task<Result<PagedResponse<ReviewResponse>>> GetReviewsAsync(ReviewSearchRequest search);
-    Task<Result<ReviewResponse>> GetReviewByIdAsync(int id);
-    Task<Result> CreateReviewAsync(ReviewCreateRequest request);
-    Task<Result> UpdateReviewAsync(ReviewUpdateRequest request);
     Task<Result> DeleteReviewAsync(ReviewDeleteRequest request);
 
     // The signed-in customer's own reviews.

@@ -40,17 +40,6 @@ class ServiceRequestProvider extends BaseProvider<ServiceRequest> {
     await command("POST", "ServiceRequests", request.toJson());
   }
 
-  // Only while the request is Created and has no offers. The chosen tradesperson cannot be changed.
-  Future<void> update(int id, ServiceRequestUpsertRequest request) async {
-    var body = request.toJson()..remove("targetTradespersonProfileId");
-    await command("PUT", "ServiceRequests/$id", body);
-  }
-
-  // Only while the request is Created and has no offers. Afterwards it can only be cancelled.
-  Future<void> delete(int id) async {
-    await command("DELETE", "ServiceRequests/$id");
-  }
-
   // The API cancels the request, its appointment and its open offers, and writes the status history.
   Future<void> cancel(int id, String? reason) async {
     await command("POST", "ServiceRequests/$id/cancel", {

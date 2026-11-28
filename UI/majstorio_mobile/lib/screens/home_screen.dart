@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:majstorio_mobile/layouts/master_screen.dart';
+import 'package:majstorio_mobile/models/auth/auth_session.dart';
 import 'package:majstorio_mobile/models/category/category.dart';
 import 'package:majstorio_mobile/models/service_request/service_request.dart';
+import 'package:majstorio_mobile/models/tradesperson_profile/tradesperson_profile.dart';
+import 'package:majstorio_mobile/models/tradesperson_profile/tradesperson_profile_search_request.dart';
 import 'package:majstorio_mobile/providers/category/category_provider.dart';
 import 'package:majstorio_mobile/providers/offer/offer_provider.dart';
 import 'package:majstorio_mobile/providers/service_request/service_request_provider.dart';
+import 'package:majstorio_mobile/providers/tradesperson_profile/tradesperson_profile_provider.dart';
 import 'package:majstorio_mobile/screens/news_post/news_post_screen.dart';
 import 'package:majstorio_mobile/screens/service_request/service_request_details_screen.dart';
 import 'package:majstorio_mobile/screens/tradesperson_profile/tradesperson_profiles_screen.dart';
@@ -13,10 +17,11 @@ import 'package:majstorio_mobile/utils/error_message.dart';
 import 'package:majstorio_mobile/utils/formatters.dart';
 import 'package:majstorio_mobile/widgets/common.dart';
 import 'package:majstorio_mobile/widgets/load_state.dart';
+import 'package:majstorio_mobile/widgets/tradesperson_card.dart';
 import 'package:provider/provider.dart';
 
-// "Početna" for a customer: search, the service categories and the request that is currently running.
-// Each part loads on its own, so one failing part does not hide the other.
+// "Početna" for a customer: search, the service categories, the recommended tradespeople and the
+// request that is currently running. Each part loads on its own, so one failing part does not hide the others.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -28,6 +33,11 @@ class _HomeScreenState extends State<HomeScreen> {
   late CategoryProvider _categoryProvider;
   late ServiceRequestProvider _serviceRequestProvider;
   late OfferProvider _offerProvider;
+  late TradespersonProfileProvider _profileProvider;
+
+  static const recommendedCount = 3;
+  List<TradespersonProfile>? recommended;
+  String? recommendedError;
 
   List<Category>? categories;
   String? categoriesError;
@@ -41,11 +51,16 @@ class _HomeScreenState extends State<HomeScreen> {
     _categoryProvider = context.read<CategoryProvider>();
     _serviceRequestProvider = context.read<ServiceRequestProvider>();
     _offerProvider = context.read<OfferProvider>();
+    _profileProvider = context.read<TradespersonProfileProvider>();
+    // A search or a new request is new history, so the recommendations are loaded again.
+    _profileProvider.searches.addListener(loadRecommended);
+    _serviceRequestProvider.addListener(loadRecommended);
     // A new, changed or cancelled request (or an accepted offer) changes the active request card.
     _serviceRequestProvider.addListener(loadActiveRequest);
     _offerProvider.addListener(loadActiveRequest);
     loadCategories();
     loadActiveRequest();
+    loadRecommended();
     super.initState();
   }
 
@@ -53,6 +68,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _serviceRequestProvider.removeListener(loadActiveRequest);
     _offerProvider.removeListener(loadActiveRequest);
+    _profileProvider.searches.removeListener(loadRecommended);
+    _serviceRequestProvider.removeListener(loadRecommended);
     super.dispose();
   }
 
@@ -95,6 +112,31 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // The first results of a search without filters are the recommendations; the API does not log it.
+  Future<void> loadRecommended() async {
+    setState(() {
+      recommendedError = null;
+    });
+    try {
+      // One extra row, because a user's own profile can be in the list.
+      var result = await _profileProvider.get(
+        TradespersonProfileSearchRequest(pageSize: recommendedCount + 1),
+      );
+      if (!mounted) return;
+      setState(() {
+        recommended = result.items
+            .where((profile) => profile.isApproved && profile.isActive && profile.userId != AuthSession.userId)
+            .take(recommendedCount)
+            .toList();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        recommendedError = exceptionText(e);
+      });
+    }
+  }
+
   void openSearch({int? categoryId}) {
     Navigator.push(
       context,
@@ -118,6 +160,20 @@ class _HomeScreenState extends State<HomeScreen> {
             label: Text(category.name),
             onPressed: () => openSearch(categoryId: category.id),
           ),
+      ],
+    );
+  }
+
+  Widget buildRecommended() {
+    if (recommendedError != null) {
+      return ErrorView(message: recommendedError!, onRetry: loadRecommended);
+    }
+    if (recommended == null) return const LoadingView();
+    if (recommended!.isEmpty) return const EmptyView(message: "Trenutno nema preporučenih majstora.");
+    return Column(
+      children: [
+        for (var profile in recommended!)
+          Padding(padding: const EdgeInsets.only(bottom: 12), child: TradespersonCard(profile: profile)),
       ],
     );
   }
@@ -200,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
       child: RefreshIndicator(
-        onRefresh: () => Future.wait([loadCategories(), loadActiveRequest()]),
+        onRefresh: () => Future.wait([loadCategories(), loadRecommended(), loadActiveRequest()]),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -220,6 +276,8 @@ class _HomeScreenState extends State<HomeScreen> {
             buildCategories(),
             const SectionTitle("Aktivni zahtjev"),
             buildActiveRequest(),
+            const SectionTitle("Preporučeno za vas"),
+            buildRecommended(),
           ],
         ),
       ),

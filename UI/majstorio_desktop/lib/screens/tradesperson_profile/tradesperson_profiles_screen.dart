@@ -5,6 +5,7 @@ import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/tradesperson_profile/tradesperson_profile.dart';
 import 'package:majstorio_desktop/models/tradesperson_profile/tradesperson_profile_search_request.dart';
 import 'package:majstorio_desktop/providers/tradesperson_profile/tradesperson_profile_provider.dart';
+import 'package:majstorio_desktop/screens/tradesperson_profile/tradesperson_profile_details_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 import 'package:majstorio_desktop/widgets/dialogs.dart';
 import 'package:majstorio_desktop/widgets/pager.dart';
@@ -12,7 +13,7 @@ import 'package:majstorio_desktop/widgets/status_filter.dart';
 import 'package:majstorio_desktop/utils/error_message.dart';
 import 'package:provider/provider.dart';
 
-// Tradesperson profiles: the admin approves new ones and activates or deactivates existing ones.
+// Tradesperson profiles: the admin approves new ones, edits them and activates or deactivates them.
 class TradespersonProfilesScreen extends StatefulWidget {
   const TradespersonProfilesScreen({super.key});
 
@@ -63,6 +64,17 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
       page = 1;
       loadProfiles();
     });
+  }
+
+  // Opens the form; the list is loaded again when something was saved.
+  void editProfile(TradespersonProfile profile) async {
+    var saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => TradespersonProfileDetailsScreen(toUpdate: profile)),
+    );
+    if (saved != true || !mounted) return;
+    showMessage(context, "${profile.fullName} was updated.");
+    loadProfiles();
   }
 
   @override
@@ -136,6 +148,7 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
                               DataColumn(label: Text("Completed jobs")),
                               DataColumn(label: Text("Approved")),
                               DataColumn(label: Text("Active")),
+                              DataColumn(label: Text("Actions")),
                             ],
                             rows: profiles.map((profile) {
                               return DataRow(
@@ -192,6 +205,13 @@ class _TradespersonProfilesScreenState extends State<TradespersonProfilesScreen>
                                           );
                                         }
                                       },
+                                    ),
+                                  ),
+                                  DataCell(
+                                    IconButton(
+                                      tooltip: "Edit",
+                                      icon: const Icon(Icons.edit_outlined),
+                                      onPressed: () => editProfile(profile),
                                     ),
                                   ),
                                 ],

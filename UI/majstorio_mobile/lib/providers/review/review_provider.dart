@@ -18,23 +18,6 @@ class ReviewProvider extends BaseProvider<ReviewResponse> {
     return response.statusCode;
   }
 
-  // The API allows only an administrator to update or delete a review, so a customer gets 403.
-  Future<int> update(ReviewUpsertRequest request, int id) async {
-    var response = await BaseProvider.client.put(
-      url("Reviews/$id"),
-      body: json.encode(request.toJson()),
-      headers: authHeaders(),
-    );
-    checkUnauthorized(response);
-    return response.statusCode;
-  }
-
-  Future<int> delete(int id) async {
-    var response = await BaseProvider.client.delete(url("Reviews/$id"), headers: authHeaders());
-    checkUnauthorized(response);
-    return response.statusCode;
-  }
-
   // The rating of this appointment, or null when it is not rated yet.
   Future<ReviewResponse?> getForAppointment(int appointmentId) async {
     var page = await get(ReviewSearchRequest(appointmentId: appointmentId, pageSize: 1));

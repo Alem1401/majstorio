@@ -116,6 +116,41 @@ public class TradespersonProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Update_ChangesCityAndDescription()
+    {
+        var city = new City { Name = "New city" };
+        _ctx.Add(city);
+        await _ctx.SaveChangesAsync();
+
+        var result = await _service.UpdateProfileAsync(new()
+        {
+            Id = _s.Profile.Id, CityId = city.Id, Description = "  Electrician "
+        });
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(city.Id, _s.Profile.CityId);
+        Assert.Equal("Electrician", _s.Profile.Description);
+        Assert.True(_s.Profile.IsApproved);
+    }
+
+    [Fact]
+    public async Task Update_MissingProfileOrInactiveCity_IsRejected_ButTheCurrentCityMayStay()
+    {
+        var inactive = new City { Name = "Inactive", IsActive = false };
+        _ctx.Add(inactive);
+        _s.City.IsActive = false;
+        await _ctx.SaveChangesAsync();
+
+        var missing = await _service.UpdateProfileAsync(new() { Id = 999, CityId = _s.City.Id, Description = "Text" });
+        var moved = await _service.UpdateProfileAsync(new() { Id = _s.Profile.Id, CityId = inactive.Id, Description = "Text" });
+        var kept = await _service.UpdateProfileAsync(new() { Id = _s.Profile.Id, CityId = _s.City.Id, Description = "Text" });
+
+        Assert.Equal(ErrorType.NotFound, missing.ErrorType);
+        Assert.Equal(ErrorType.NotFound, moved.ErrorType);
+        Assert.True(kept.IsSuccess);
+    }
+
+    [Fact]
     public async Task Approve_GrantsTheTradespersonRoleRecordsTheAdministratorAndInvalidatesOldTokens()
     {
         var applicant = _s.AddProfile(isApproved: false);

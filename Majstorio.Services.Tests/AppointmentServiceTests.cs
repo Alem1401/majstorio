@@ -121,7 +121,6 @@ public class AppointmentServiceTests : IDisposable
     [Fact]
     public async Task MissingAppointment_ReturnsNotFound()
     {
-        Assert.Equal(ErrorType.NotFound, (await _service.GetAppointmentByIdAsync(999)).ErrorType);
         Assert.Equal(ErrorType.NotFound,
             (await _service.CompleteAppointmentAsync(TestSupport.As(_s.Profile.User), 999)).ErrorType);
     }

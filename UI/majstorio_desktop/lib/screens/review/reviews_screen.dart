@@ -3,7 +3,6 @@ import 'package:majstorio_desktop/layouts/master_screen.dart';
 import 'package:majstorio_desktop/models/review/review.dart';
 import 'package:majstorio_desktop/models/review/review_search_request.dart';
 import 'package:majstorio_desktop/providers/review/review_provider.dart';
-import 'package:majstorio_desktop/screens/review/review_details_screen.dart';
 import 'package:majstorio_desktop/theme/app_theme.dart';
 import 'package:majstorio_desktop/utils/formatters.dart';
 import 'package:majstorio_desktop/widgets/dialogs.dart';
@@ -88,7 +87,6 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                               DataColumn(label: Text("Rating")),
                               DataColumn(label: Text("Comment")),
                               DataColumn(label: Text("Posted at")),
-                              DataColumn(label: Text("Update")),
                               DataColumn(label: Text("Delete")),
                             ],
                             rows: reviews.map((review) {
@@ -120,25 +118,6 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                     ),
                                   ),
                                   DataCell(Text(formatDateTime(review.createdAtUtc))),
-                                  DataCell(
-                                    IconButton(
-                                      icon: const Icon(Icons.edit_outlined),
-                                      color: AppTheme.ink,
-                                      tooltip: 'Update',
-                                      onPressed: () async {
-                                        var success = await Navigator.push<bool>(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (ctx) =>
-                                                ReviewDetailsScreen(toUpdate: review),
-                                          ),
-                                        );
-                                        if (success == true) {
-                                          loadReviews();
-                                        }
-                                      },
-                                    ),
-                                  ),
                                   DataCell(
                                     IconButton(
                                       icon: const Icon(Icons.delete_outline),

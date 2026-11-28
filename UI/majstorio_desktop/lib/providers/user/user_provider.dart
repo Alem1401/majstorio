@@ -10,14 +10,6 @@ class UserProvider extends BaseProvider<User> {
 
   //Future<int> post(User user) will be implemented as a  register endpoint
   
-  Future<User> getById(int id) async {
-    var response = await http.get(Uri.parse("$baseUrl/Users/$id"), headers: authHeaders());
-    checkUnauthorized(response);
-    var jsonUser = json.decode(response.body);
-    var user = User.fromJson(jsonUser);
-    return user;
-  }
-
   Future<int> delete(User user) async {
     var response = await http.delete(Uri.parse("$baseUrl/Users/${user.id}"), headers: authHeaders());
     checkUnauthorized(response);

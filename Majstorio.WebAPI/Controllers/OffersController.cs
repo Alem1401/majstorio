@@ -27,16 +27,6 @@ public class OffersController : ControllerBase
     public async Task<IActionResult> Get([FromQuery] OfferSearchRequest search)
         => _resultMapper.Map(await _offerService.GetOffersAsync(search));
 
-    [Authorize(Roles = RoleNames.Administrator)]
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetById(int id)
-        => _resultMapper.Map(await _offerService.GetOfferByIdAsync(id));
-
-    [Authorize(Roles = RoleNames.Administrator)]
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
-        => _resultMapper.Map(await _offerService.DeleteOfferAsync(new OfferDeleteRequest { Id = id }));
-
     // Offers sent by the signed-in tradesperson, or received on the signed-in customer's requests.
     [HttpGet("mine")]
     public async Task<IActionResult> GetMine([FromQuery] OfferSearchRequest search)

@@ -27,11 +27,6 @@ public class AppointmentsController : ControllerBase
     public async Task<IActionResult> Get([FromQuery] AppointmentSearchRequest search)
         => _resultMapper.Map(await _appointmentService.GetAppointmentsAsync(search));
 
-    [Authorize(Roles = RoleNames.Administrator)]
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetById(int id)
-        => _resultMapper.Map(await _appointmentService.GetAppointmentByIdAsync(id));
-
     // Appointments of the signed-in customer's requests, or of the jobs assigned to the signed-in tradesperson.
     [HttpGet("mine")]
     public async Task<IActionResult> GetMine([FromQuery] AppointmentSearchRequest search)

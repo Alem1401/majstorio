@@ -176,40 +176,6 @@ public class ServiceRequestServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateAndDelete_OnlyByTheOwnerAndOnlyWhileThereAreNoOffers()
-    {
-        var stranger = TestSupport.NewUser();
-        _ctx.Add(stranger);
-        await _ctx.SaveChangesAsync();
-        var update = new ServiceRequestUpdateRequest
-        {
-            Id = _s.Request.Id, CityId = _s.City.Id, ServiceCategoryId = _s.Category.Id,
-            Description = "Changed", DesiredStartUtc = _s.Start, MaximumBudget = 300m
-        };
-        var delete = new ServiceRequestDeleteRequest { Id = _s.Request.Id };
-
-        Assert.Equal(ErrorType.Forbidden, (await _service.UpdateServiceRequestAsync(TestSupport.As(stranger), update)).ErrorType);
-        Assert.Equal(ErrorType.Forbidden, (await _service.DeleteServiceRequestAsync(TestSupport.As(stranger), delete)).ErrorType);
-
-        Assert.True((await _service.UpdateServiceRequestAsync(TestSupport.As(_s.Customer), update)).IsSuccess);
-        Assert.Equal("Changed", _s.Request.Description);
-        Assert.Equal(_s.Customer.Id, _s.Request.CustomerId);
-
-        _s.AddOffer();
-        Assert.Equal(ErrorType.Conflict, (await _service.UpdateServiceRequestAsync(TestSupport.As(_s.Customer), update)).ErrorType);
-        Assert.Equal(ErrorType.Conflict, (await _service.DeleteServiceRequestAsync(TestSupport.As(_s.Customer), delete)).ErrorType);
-    }
-
-    [Fact]
-    public async Task Delete_OpenRequestWithoutOffers_RemovesIt()
-    {
-        var result = await _service.DeleteServiceRequestAsync(TestSupport.As(_s.Customer), new() { Id = _s.Request.Id });
-
-        Assert.True(result.IsSuccess);
-        Assert.Empty(await _ctx.ServiceRequests.ToListAsync());
-    }
-
-    [Fact]
     public async Task Cancel_OpenRequest_ClosesPendingOffersAndWritesHistory()
     {
         var offer = _s.AddOffer();

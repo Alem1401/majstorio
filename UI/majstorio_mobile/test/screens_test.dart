@@ -66,20 +66,20 @@ void main() {
     expect(api.calls, isEmpty);
   });
 
-  testWidgets('owner sees edit and delete on a request without offers', (tester) async {
+  testWidgets('owner can only cancel a request, never edit or delete it', (tester) async {
     signInAs(AuthSession.customer);
     FakeApi((request) => jsonResponse(requestDetailJson()));
 
     await tester.pumpWidget(app(const ServiceRequestDetailsScreen(requestId: 10)));
     await tester.pumpAndSettle();
 
-    expect(find.text('Uredi zahtjev'), findsOneWidget);
-    expect(find.text('Obriši zahtjev'), findsOneWidget);
     expect(find.text('Otkaži zahtjev'), findsOneWidget);
+    expect(find.textContaining('Uredi'), findsNothing);
+    expect(find.textContaining('Obriši'), findsNothing);
     expect(find.textContaining('Usporedi ponude'), findsNothing);
   });
 
-  testWidgets('owner with pending offers can compare them but not edit', (tester) async {
+  testWidgets('owner with pending offers can compare them', (tester) async {
     signInAs(AuthSession.customer);
     FakeApi((request) => jsonResponse(requestDetailJson(offers: [offerJson(id: 1), offerJson(id: 2, price: 70)])));
 
@@ -87,27 +87,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Usporedi ponude (2)'), findsOneWidget);
-    expect(find.text('Uredi zahtjev'), findsNothing);
-    expect(find.text('Obriši zahtjev'), findsNothing);
-  });
-
-  testWidgets('delete asks first and calls the API only after "Da"', (tester) async {
-    signInAs(AuthSession.customer);
-    var api = FakeApi((request) {
-      if (request.method == 'DELETE') return http.Response('', 200);
-      return jsonResponse(requestDetailJson());
-    });
-
-    await tester.pumpWidget(app(const ServiceRequestDetailsScreen(requestId: 10)));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Obriši zahtjev'));
-    await tester.tap(find.text('Obriši zahtjev'));
-    await tester.pumpAndSettle();
-    expect(find.text('Brisanje zahtjeva'), findsOneWidget);
-
-    await tester.tap(find.text('Ne'));
-    await tester.pumpAndSettle();
-    expect(api.calls.where((call) => call.method == 'DELETE'), isEmpty);
   });
 
   testWidgets('another customer sees no actions on a request', (tester) async {
@@ -117,7 +96,6 @@ void main() {
     await tester.pumpWidget(app(const ServiceRequestDetailsScreen(requestId: 10)));
     await tester.pumpAndSettle();
 
-    expect(find.text('Uredi zahtjev'), findsNothing);
     expect(find.text('Otkaži zahtjev'), findsNothing);
   });
 

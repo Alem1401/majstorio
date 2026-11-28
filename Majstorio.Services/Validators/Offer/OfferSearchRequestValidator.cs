@@ -11,6 +11,6 @@ public class OfferSearchRequestValidator : SearchRequestValidator<OfferSearchReq
         RuleFor(request => request.Status)
             .Must(status => Enum.IsDefined(typeof(OfferStatus), status!.Value))
             .When(request => request.Status.HasValue)
-            .WithMessage("Offer status is invalid. Use 0 (Pending), 1 (Accepted), 2 (Rejected), 3 (Withdrawn) or 4 (Closed).");
+            .WithMessage("Offer status is invalid. Use 0 (Pending), 1 (Accepted), 3 (Withdrawn) or 4 (Closed).");
     }
 }

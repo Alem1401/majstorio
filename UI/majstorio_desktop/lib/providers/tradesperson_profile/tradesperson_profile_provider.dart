@@ -3,10 +3,21 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:majstorio_desktop/constants.dart';
 import 'package:majstorio_desktop/models/tradesperson_profile/tradesperson_profile.dart';
+import 'package:majstorio_desktop/models/tradesperson_profile/tradesperson_profile_upsert_request.dart';
 import 'package:majstorio_desktop/providers/base_provider.dart';
 
 class TradespersonProfileProvider extends BaseProvider<TradespersonProfile> {
   TradespersonProfileProvider() : super("TradespersonProfiles", TradespersonProfile.fromJson);
+
+  Future<int> update(int id, TradespersonProfileUpsertRequest request) async {
+    var response = await http.put(
+      Uri.parse("$baseUrl/TradespersonProfiles/$id"),
+      headers: authHeaders(),
+      body: json.encode(request.toJson()),
+    );
+    checkUnauthorized(response);
+    return response.statusCode;
+  }
 
   // Approving the profile is what gives its user the Tradesperson role.
   Future<int> approve(TradespersonProfile profile) async {

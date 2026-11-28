@@ -9,7 +9,6 @@ using Majstorio.Services.Enums;
 using Majstorio.Services.Extensions;
 using Majstorio.Services.RequestStateMachine;
 using MapsterMapper;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Majstorio.Services.Services;
@@ -53,7 +52,7 @@ public class OfferService : IOfferService
         {
             await _ctx.SaveChangesAsync();
         }
-        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
             // Two simultaneous submissions: the unique index let only the first one through.
             return Result.Failure(ErrorType.Conflict, "You already have an offer for this request.");
@@ -193,7 +192,7 @@ public class OfferService : IOfferService
             await _ctx.SaveChangesAsync();
             await transaction.CommitAsync();
         }
-        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
             // Second line of defence: one accepted offer per request and one appointment per offer
             // are unique in the database. The transaction rolls back.
@@ -225,35 +224,12 @@ public class OfferService : IOfferService
         return Result.Success();
     }
 
-    public async Task<Result> DeleteOfferAsync(OfferDeleteRequest request)
-    {
-        var offer = await _ctx.Offers.FirstOrDefaultAsync(offer => offer.Id == request.Id);
-        if (offer == null)
-            return Result.Failure(ErrorType.NotFound, NotFoundMessage);
-
-        if (offer.Status != OfferStatus.Pending || await _ctx.Appointments.AnyAsync(appointment => appointment.OfferId == offer.Id))
-            return Result.Failure(ErrorType.Conflict, "Only pending offers without an appointment can be deleted.");
-
-        _ctx.Offers.Remove(offer);
-        await _ctx.SaveChangesAsync();
-        return Result.Success();
-    }
-
     public Task<Result<PagedResponse<OfferResponse>>> GetOffersAsync(OfferSearchRequest search)
         => GetPageAsync(OffersWithNames(), search);
 
     public Task<Result<PagedResponse<OfferResponse>>> GetMyOffersAsync(CurrentUser user, OfferSearchRequest search)
         => GetPageAsync(OffersWithNames().Where(offer => offer.TradespersonProfile.UserId == user.Id
             || offer.ServiceRequest.CustomerId == user.Id), search);
-
-    public async Task<Result<OfferResponse>> GetOfferByIdAsync(int id)
-    {
-        var offer = await OffersWithNames().FirstOrDefaultAsync(offer => offer.Id == id);
-        if (offer == null)
-            return Result<OfferResponse>.Failure(ErrorType.NotFound, NotFoundMessage);
-
-        return Result<OfferResponse>.Success(ToResponse(offer));
-    }
 
     private async Task<Result<PagedResponse<OfferResponse>>> GetPageAsync(IQueryable<Offer> query, OfferSearchRequest search)
     {
@@ -319,8 +295,4 @@ public class OfferService : IOfferService
 
         return Result.Success();
     }
-
-    // SQL Server error 2601 / 2627: a row would duplicate a unique index or constraint.
-    private static bool IsUniqueViolation(DbUpdateException exception) =>
-        exception.InnerException is SqlException { Number: 2601 or 2627 };
 }

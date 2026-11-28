@@ -11,7 +11,7 @@ public class OfferResponse
     public decimal Price { get; set; }
     public DateTime ProposedStartUtc { get; set; }
     public int DurationMinutes { get; set; }
-    // 0 = Pending, 1 = Accepted, 2 = Rejected, 3 = Withdrawn, 4 = Closed.
+    // 0 = Pending, 1 = Accepted, 3 = Withdrawn, 4 = Closed.
     public int Status { get; set; }
     public string? DecisionReason { get; set; }
     public int? DecidedByUserId { get; set; }

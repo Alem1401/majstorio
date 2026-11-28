@@ -11,8 +11,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Majstorio.Services.Services;
 
+// Customers rate their own completed jobs; administrators only list and delete reviews (moderation).
 public class ReviewService : IReviewService
 {
+    private const string NotFoundMessage = "Review not found.";
+    private const string AppointmentNotFoundMessage = "Appointment not found.";
+    private const string DuplicateMessage = "A review already exists for this appointment.";
+
     private readonly MajstorioDbContext _ctx;
     private readonly IMapper _mapper;
 
@@ -22,20 +27,27 @@ public class ReviewService : IReviewService
         _mapper = mapper;
     }
 
-    public async Task<Result> CreateReviewAsync(ReviewCreateRequest request)
+    public Task<Result<PagedResponse<ReviewResponse>>> GetReviewsAsync(ReviewSearchRequest search)
+        => GetPageAsync(ReviewsWithNames(), search);
+
+    public Task<Result<PagedResponse<ReviewResponse>>> GetMyReviewsAsync(CurrentUser user, ReviewSearchRequest search)
+        => GetPageAsync(ReviewsWithNames().Where(review => review.CustomerId == user.Id), search);
+
+    public async Task<Result> CreateMyReviewAsync(CurrentUser user, ReviewCreateRequest request)
     {
         var appointment = await _ctx.Appointments
-            .Include(appointment => appointment.Offer)
-                .ThenInclude(offer => offer.ServiceRequest)
+            .Include(appointment => appointment.Offer.ServiceRequest)
             .FirstOrDefaultAsync(appointment => appointment.Id == request.AppointmentId);
-        if (appointment == null)
-            return Result.Failure(ErrorType.NotFound, "Appointment not found.");
+
+        // Another customer's appointment is reported as missing, so its existence is not revealed.
+        if (appointment == null || appointment.Offer.ServiceRequest.CustomerId != user.Id)
+            return Result.Failure(ErrorType.NotFound, AppointmentNotFoundMessage);
 
         if (appointment.Status != AppointmentStatus.Completed)
             return Result.Failure(ErrorType.Conflict, "Only completed appointments can be reviewed.");
 
         if (await _ctx.Reviews.AnyAsync(review => review.AppointmentId == request.AppointmentId))
-            return Result.Failure(ErrorType.Conflict, "A review already exists for this appointment.");
+            return Result.Failure(ErrorType.Conflict, DuplicateMessage);
 
         var review = _mapper.Map<Review>(request);
         // The reviewed tradesperson and the reviewing customer come from the job, never from the client.
@@ -43,8 +55,8 @@ public class ReviewService : IReviewService
         review.CustomerId = appointment.Offer.ServiceRequest.CustomerId;
         // A comment of only spaces is no comment.
         review.Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim();
+        _ctx.Reviews.Add(review);
 
-        await _ctx.Reviews.AddAsync(review);
         try
         {
             await _ctx.SaveChangesAsync();
@@ -52,22 +64,8 @@ public class ReviewService : IReviewService
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
             // The same job was rated by a second request that passed the check above at the same moment.
-            return Result.Failure(ErrorType.Conflict, "A review already exists for this appointment.");
+            return Result.Failure(ErrorType.Conflict, DuplicateMessage);
         }
-        return Result.Success();
-    }
-
-    public async Task<Result> UpdateReviewAsync(ReviewUpdateRequest request)
-    {
-        var review = await _ctx.Reviews.FirstOrDefaultAsync(review => review.Id == request.Id);
-        if (review == null)
-            return Result.Failure(ErrorType.NotFound, "Review not found.");
-
-        if (review.AppointmentId != request.AppointmentId)
-            return Result.Failure(ErrorType.Conflict, "A review cannot be moved to another appointment.");
-
-        _mapper.Map(request, review);
-        await _ctx.SaveChangesAsync();
         return Result.Success();
     }
 
@@ -75,17 +73,15 @@ public class ReviewService : IReviewService
     {
         var review = await _ctx.Reviews.FirstOrDefaultAsync(review => review.Id == request.Id);
         if (review == null)
-            return Result.Failure(ErrorType.NotFound, "Review not found.");
+            return Result.Failure(ErrorType.NotFound, NotFoundMessage);
 
         _ctx.Reviews.Remove(review);
         await _ctx.SaveChangesAsync();
         return Result.Success();
     }
 
-    public async Task<Result<PagedResponse<ReviewResponse>>> GetReviewsAsync(ReviewSearchRequest search)
+    private async Task<Result<PagedResponse<ReviewResponse>>> GetPageAsync(IQueryable<Review> query, ReviewSearchRequest search)
     {
-        var query = ReviewsWithNames();
-
         if (search.Rating.HasValue)
             query = query.Where(review => review.Rating == search.Rating.Value);
 
@@ -98,44 +94,6 @@ public class ReviewService : IReviewService
             .ToPagedAsync(search, reviews => reviews.Select(ToResponse).ToList());
 
         return Result<PagedResponse<ReviewResponse>>.Success(page);
-    }
-
-    public async Task<Result<PagedResponse<ReviewResponse>>> GetMyReviewsAsync(CurrentUser user, ReviewSearchRequest search)
-    {
-        var query = ReviewsWithNames().Where(review => review.CustomerId == user.Id);
-
-        if (search.Rating.HasValue)
-            query = query.Where(review => review.Rating == search.Rating.Value);
-
-        if (search.AppointmentId.HasValue)
-            query = query.Where(review => review.AppointmentId == search.AppointmentId.Value);
-
-        var page = await query
-            .OrderByDescending(review => review.CreatedAtUtc)
-            .ThenByDescending(review => review.Id)
-            .ToPagedAsync(search, reviews => reviews.Select(ToResponse).ToList());
-
-        return Result<PagedResponse<ReviewResponse>>.Success(page);
-    }
-
-    public async Task<Result> CreateMyReviewAsync(CurrentUser user, ReviewCreateRequest request)
-    {
-        // Another customer's appointment is reported as missing, so its existence is not revealed.
-        var isOwnAppointment = await _ctx.Appointments.AnyAsync(appointment =>
-            appointment.Id == request.AppointmentId && appointment.Offer.ServiceRequest.CustomerId == user.Id);
-        if (!isOwnAppointment)
-            return Result.Failure(ErrorType.NotFound, "Appointment not found.");
-
-        return await CreateReviewAsync(request);
-    }
-
-    public async Task<Result<ReviewResponse>> GetReviewByIdAsync(int id)
-    {
-        var review = await ReviewsWithNames().FirstOrDefaultAsync(review => review.Id == id);
-        if (review == null)
-            return Result<ReviewResponse>.Failure(ErrorType.NotFound, "Review not found.");
-
-        return Result<ReviewResponse>.Success(ToResponse(review));
     }
 
     // Loads the customer and the tradesperson with the reviews in one query, so lists can show names instead of ids.

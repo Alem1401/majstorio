@@ -11,7 +11,6 @@ public interface IServiceRequestService
     Task<Result<PagedResponse<ServiceRequestResponse>>> GetServiceRequestsAsync(CurrentUser user, ServiceRequestSearchRequest search);
     Task<Result<ServiceRequestDetailResponse>> GetServiceRequestByIdAsync(CurrentUser user, int id);
     Task<Result> CreateServiceRequestAsync(CurrentUser user, ServiceRequestCreateRequest request);
-    Task<Result> UpdateServiceRequestAsync(CurrentUser user, ServiceRequestUpdateRequest request);
-    Task<Result> DeleteServiceRequestAsync(CurrentUser user, ServiceRequestDeleteRequest request);
+    // A request is never edited or deleted: it is cancelled, so its history stays.
     Task<Result> CancelServiceRequestAsync(CurrentUser user, ServiceRequestCancelRequest request);
 }
